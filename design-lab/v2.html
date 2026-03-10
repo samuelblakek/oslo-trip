@@ -1,0 +1,316 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>V2 — Bold Editorial</title>
+<style>
+/*
+  VARIATION 2: "Bold Editorial"
+  - Large map with day number watermark
+  - Strong typographic hierarchy
+  - Color-blocked section headers per time-of-day
+  - Feels like a Monocle travel guide went digital
+*/
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0c0c14;
+  --surface: #161622;
+  --text: #eeeef2;
+  --dim: #6e6e88;
+  --food: #e05438;
+  --coffee: #d4a028;
+  --culture: #4a92d4;
+  --drink: #38a862;
+  --accent: #e05438;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.map-hero {
+  position: relative;
+  height: 46vh;
+  overflow: hidden;
+}
+.map-hero .map-el { width: 100%; height: 100%; }
+.map-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 80px;
+  background: linear-gradient(transparent, var(--bg));
+  pointer-events: none;
+}
+
+/* Tabs — minimal underline style */
+.nav-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: var(--bg);
+  display: flex;
+  padding: 0 16px;
+  gap: 24px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.nav-item {
+  padding: 14px 0;
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: var(--dim);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  letter-spacing: 0.02em;
+}
+.nav-item.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+.page { padding: 24px 16px 40px; }
+
+/* Big day title */
+.day-num {
+  font-size: 4rem;
+  font-weight: 900;
+  color: rgba(255,255,255,0.04);
+  line-height: 1;
+  letter-spacing: -0.05em;
+  margin-bottom: -20px;
+}
+.day-title {
+  font-size: 1.5rem;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.03em;
+  margin-bottom: 4px;
+}
+.day-sub {
+  font-size: 0.78rem;
+  color: var(--dim);
+  margin-bottom: 24px;
+}
+
+/* Time-of-day section headers */
+.time-section {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 6px 10px;
+  border-radius: 4px;
+  display: inline-block;
+  margin: 20px 0 12px;
+}
+.time-section.afternoon { background: rgba(212,160,40,0.15); color: #d4a028; }
+.time-section.evening { background: rgba(224,84,56,0.15); color: #e05438; }
+.time-section.night { background: rgba(74,146,212,0.15); color: #4a92d4; }
+
+/* Stop row */
+.stop-row {
+  display: flex;
+  gap: 14px;
+  padding: 12px 0;
+}
+.stop-row + .stop-row {
+  border-top: 1px solid rgba(255,255,255,0.03);
+}
+.stop-time {
+  flex: none;
+  width: 52px;
+  font-size: 0.78rem;
+  font-weight: 700;
+  color: var(--dim);
+  padding-top: 1px;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+.stop-info { flex: 1; min-width: 0; }
+.stop-name-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 3px;
+}
+.stop-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+}
+.type-indicator {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.must-flag {
+  font-size: 0.52rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+}
+.stop-note {
+  font-size: 0.78rem;
+  color: var(--dim);
+  line-height: 1.4;
+}
+.stop-meta-row {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 6px;
+}
+.hours-tag {
+  font-size: 0.62rem;
+  color: var(--dim);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 6px;
+  border-radius: 3px;
+}
+.maps-link {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--culture);
+  text-decoration: none;
+}
+</style>
+</head>
+<body>
+
+<div class="map-hero">
+  <div class="map-el" id="map"></div>
+</div>
+
+<div class="nav-bar">
+  <button class="nav-item active">Day 1</button>
+  <button class="nav-item">Day 2</button>
+  <button class="nav-item">Day 3</button>
+  <button class="nav-item">Maybes</button>
+  <button class="nav-item">Info</button>
+</div>
+
+<div class="page">
+  <div class="day-num">01</div>
+  <div class="day-title">Arrival, Bjørvika<br>& Arsenal Night</div>
+  <div class="day-sub">Wednesday, March 11</div>
+
+  <span class="time-section afternoon">Afternoon</span>
+
+  <div class="stop-row">
+    <div class="stop-time">1:30 PM</div>
+    <div class="stop-info">
+      <div class="stop-name-row">
+        <span class="type-indicator" style="background:#777"></span>
+        <span class="stop-name">Citybox Oslo</span>
+      </div>
+      <div class="stop-note">Drop bags. Self check-in. 3 min walk from Oslo S.</div>
+      <div class="stop-meta-row">
+        <span class="hours-tag">24hrs</span>
+        <a class="maps-link" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-row">
+    <div class="stop-time">1:50 PM</div>
+    <div class="stop-info">
+      <div class="stop-name-row">
+        <span class="type-indicator" style="background:#d4a028"></span>
+        <span class="stop-name">Hakone Coffee</span>
+      </div>
+      <div class="stop-note">Coffee #1. Pistachio croissant + coffee. 4 min walk from hotel.</div>
+      <div class="stop-meta-row">
+        <span class="hours-tag">7am–8pm</span>
+        <a class="maps-link" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="stop-row">
+    <div class="stop-time">2:15 PM</div>
+    <div class="stop-info">
+      <div class="stop-name-row">
+        <span class="type-indicator" style="background:#e05438"></span>
+        <span class="stop-name">The Little Pickle</span>
+        <span class="must-flag">Must</span>
+      </div>
+      <div class="stop-note">Late lunch — sourdough, eggs, small dishes, cinnamon rolls. Closes 3pm — arrive by 2:15 latest.</div>
+      <div class="stop-meta-row">
+        <span class="hours-tag">9am–3pm, 5–9pm</span>
+        <a class="maps-link" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <span class="time-section evening">Evening</span>
+
+  <div class="stop-row">
+    <div class="stop-time">6:00 PM</div>
+    <div class="stop-info">
+      <div class="stop-name-row">
+        <span class="type-indicator" style="background:#38a862"></span>
+        <span class="stop-name">Bohemen Sportspub</span>
+        <span class="must-flag">Must</span>
+      </div>
+      <div class="stop-note">Brighton vs Arsenal. 18:45 Oslo kick-off. Get there by 6pm.</div>
+      <div class="stop-meta-row">
+        <span class="hours-tag">2pm–12am</span>
+        <a class="maps-link" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <span class="time-section night">Late Night</span>
+
+  <div class="stop-row">
+    <div class="stop-time">10:00 PM</div>
+    <div class="stop-info">
+      <div class="stop-name-row">
+        <span class="type-indicator" style="background:#38a862"></span>
+        <span class="stop-name">Himkok</span>
+      </div>
+      <div class="stop-note">Post-match cocktails. World's 50 Best Bars. Own distillery.</div>
+      <div class="stop-meta-row">
+        <span class="hours-tag">5pm–12am</span>
+        <a class="maps-link" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/data.js"></script>
+<script>
+function initV2Map() {
+  if (typeof google === 'undefined') return;
+  const stops = TRIP_DATA.days[0].stops;
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(s => bounds.extend({lat:s.lat,lng:s.lng}));
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: bounds.getCenter(), zoom: 14,
+    disableDefaultUI: true, zoomControl: false, gestureHandling: 'greedy'
+  });
+  map.fitBounds(bounds, 30);
+  const colors = {food:'#e05438',coffee:'#d4a028',culture:'#4a92d4',drink:'#38a862',hotel:'#777'};
+  stops.forEach((s,i) => {
+    new google.maps.Marker({
+      position:{lat:s.lat,lng:s.lng}, map,
+      label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'800'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:colors[s.type]||'#888',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+    });
+  });
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:'#4285f4',strokeWeight:4,strokeOpacity:0.7}});
+  ds.route({origin:{lat:stops[0].lat,lng:stops[0].lng},destination:{lat:stops[stops.length-1].lat,lng:stops[stops.length-1].lng},waypoints:stops.slice(1,-1).map(s=>({location:{lat:s.lat,lng:s.lng},stopover:true})),travelMode:'WALKING'},(r,st)=>{if(st==='OK')dr.setDirections(r);});
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&callback=initV2Map"></script>
+</body>
+</html>

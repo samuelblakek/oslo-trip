@@ -1,0 +1,365 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>V1 — Sticky Map + Compact Cards</title>
+<style>
+/*
+  VARIATION 1: "Sticky Map"
+  - Map sticks to top ~45% of viewport
+  - Compact horizontal stop cards scroll below
+  - Day pills float over the map
+  - Feels like Google Maps meets a curated guide
+*/
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #111118;
+  --card: #1c1c28;
+  --card-hover: #252535;
+  --text: #f0f0f0;
+  --dim: #8888a0;
+  --food: #e8553d;
+  --coffee: #c8922a;
+  --culture: #3a8fd4;
+  --drink: #44a858;
+  --hotel: #777;
+  --accent: #e8553d;
+  --radius: 14px;
+}
+html { font-size: 15px; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  min-height: 100dvh;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Map area */
+.map-area {
+  position: sticky;
+  top: 0;
+  z-index: 10;
+  height: 44vh;
+  background: #2a2a3a;
+  overflow: hidden;
+}
+.map-area img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0.6;
+}
+.map-placeholder {
+  width: 100%; height: 100%;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--dim); font-size: 0.85rem;
+  background: linear-gradient(135deg, #1a1a2e 0%, #0f1923 100%);
+}
+
+/* Day pills — float over map bottom */
+.day-pills {
+  position: absolute;
+  bottom: 12px;
+  left: 12px;
+  display: flex;
+  gap: 6px;
+  z-index: 20;
+}
+.day-pill {
+  padding: 7px 14px;
+  border-radius: 20px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: rgba(28,28,40,0.85);
+  color: var(--dim);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  transition: all 0.15s;
+}
+.day-pill.active {
+  background: #fff;
+  color: #111;
+}
+
+/* Content below map */
+.content {
+  position: relative;
+  z-index: 20;
+  min-height: 56vh;
+  background: var(--bg);
+  border-radius: 18px 18px 0 0;
+  margin-top: -16px;
+  padding: 20px 14px 40px;
+}
+
+/* Day header */
+.day-label {
+  font-size: 0.65rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--dim);
+  margin-bottom: 2px;
+}
+.day-heading {
+  font-size: 1.3rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  margin-bottom: 14px;
+  line-height: 1.2;
+}
+
+/* Stop cards — compact, tappable */
+.stop {
+  display: grid;
+  grid-template-columns: 44px 1fr auto;
+  gap: 0 12px;
+  padding: 14px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+  align-items: start;
+}
+.stop:last-child { border-bottom: none; }
+
+.stop-time-col {
+  text-align: right;
+  padding-top: 2px;
+}
+.stop-time {
+  font-size: 0.72rem;
+  font-weight: 700;
+  color: var(--dim);
+  font-variant-numeric: tabular-nums;
+  line-height: 1.4;
+}
+.stop-period {
+  font-size: 0.6rem;
+  color: rgba(136,136,160,0.6);
+}
+
+.stop-body { min-width: 0; }
+.stop-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  margin-bottom: 3px;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stop-type-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stop-desc {
+  font-size: 0.78rem;
+  color: var(--dim);
+  line-height: 1.4;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.stop-hours-pill {
+  font-size: 0.62rem;
+  color: var(--dim);
+  background: rgba(255,255,255,0.04);
+  padding: 2px 7px;
+  border-radius: 4px;
+  margin-top: 5px;
+  display: inline-block;
+}
+
+.stop-action {
+  padding-top: 2px;
+}
+.maps-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(255,255,255,0.08);
+  background: var(--card);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--dim);
+  text-decoration: none;
+  font-size: 0.7rem;
+}
+
+/* Must-visit indicator */
+.must-tag {
+  font-size: 0.55rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  background: var(--accent);
+  color: #fff;
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+</style>
+</head>
+<body>
+
+<div class="map-area">
+  <div class="map-placeholder">
+    <div id="map" style="width:100%;height:100%"></div>
+  </div>
+  <div class="day-pills">
+    <button class="day-pill active">Day 1</button>
+    <button class="day-pill">Day 2</button>
+    <button class="day-pill">Day 3</button>
+    <button class="day-pill">Maybes</button>
+  </div>
+</div>
+
+<div class="content">
+  <div class="day-label">Wednesday, March 11</div>
+  <div class="day-heading">Arrival, Bjørvika<br>& Arsenal Night</div>
+
+  <div class="stop">
+    <div class="stop-time-col">
+      <div class="stop-time">1:30</div>
+      <div class="stop-period">PM</div>
+    </div>
+    <div class="stop-body">
+      <div class="stop-name">
+        <span class="stop-type-dot" style="background:var(--hotel)"></span>
+        Citybox Oslo
+      </div>
+      <div class="stop-desc">Drop bags. Self check-in. 3 min walk from Oslo S.</div>
+      <span class="stop-hours-pill">24hrs</span>
+    </div>
+    <div class="stop-action">
+      <a class="maps-btn" href="#" title="Open in Maps">↗</a>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="stop-time-col">
+      <div class="stop-time">1:50</div>
+      <div class="stop-period">PM</div>
+    </div>
+    <div class="stop-body">
+      <div class="stop-name">
+        <span class="stop-type-dot" style="background:var(--coffee)"></span>
+        Hakone Coffee
+      </div>
+      <div class="stop-desc">Coffee #1. Pistachio croissant + coffee. 4 min walk from hotel.</div>
+      <span class="stop-hours-pill">7am–8pm</span>
+    </div>
+    <div class="stop-action">
+      <a class="maps-btn" href="#" title="Open in Maps">↗</a>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="stop-time-col">
+      <div class="stop-time">2:15</div>
+      <div class="stop-period">PM</div>
+    </div>
+    <div class="stop-body">
+      <div class="stop-name">
+        <span class="stop-type-dot" style="background:var(--food)"></span>
+        The Little Pickle
+        <span class="must-tag">Must</span>
+      </div>
+      <div class="stop-desc">Late lunch — sourdough, eggs, small dishes, cinnamon rolls. Closes 3pm.</div>
+      <span class="stop-hours-pill">9am–3pm, 5–9pm</span>
+    </div>
+    <div class="stop-action">
+      <a class="maps-btn" href="#" title="Open in Maps">↗</a>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="stop-time-col">
+      <div class="stop-time">3:10</div>
+      <div class="stop-period">PM</div>
+    </div>
+    <div class="stop-body">
+      <div class="stop-name">
+        <span class="stop-type-dot" style="background:var(--culture)"></span>
+        Oslo Opera House
+      </div>
+      <div class="stop-desc">Quick rooftop walk. 15-20 mins. Panoramic fjord views. Free.</div>
+      <span class="stop-hours-pill">Always open</span>
+    </div>
+    <div class="stop-action">
+      <a class="maps-btn" href="#" title="Open in Maps">↗</a>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="stop-time-col">
+      <div class="stop-time">6:00</div>
+      <div class="stop-period">PM</div>
+    </div>
+    <div class="stop-body">
+      <div class="stop-name">
+        <span class="stop-type-dot" style="background:var(--drink)"></span>
+        Bohemen Sportspub
+        <span class="must-tag">Must</span>
+      </div>
+      <div class="stop-desc">Brighton vs Arsenal. 18:45 Oslo kick-off. Get there by 6pm. No food — can bring own.</div>
+      <span class="stop-hours-pill">2pm–12am</span>
+    </div>
+    <div class="stop-action">
+      <a class="maps-btn" href="#" title="Open in Maps">↗</a>
+    </div>
+  </div>
+
+  <div class="stop">
+    <div class="stop-time-col">
+      <div class="stop-time">10:00</div>
+      <div class="stop-period">PM</div>
+    </div>
+    <div class="stop-body">
+      <div class="stop-name">
+        <span class="stop-type-dot" style="background:var(--drink)"></span>
+        Himkok
+      </div>
+      <div class="stop-desc">Post-match cocktails. World's 50 Best Bars. Own distillery. Nordic cocktails.</div>
+      <span class="stop-hours-pill">5pm–12am</span>
+    </div>
+    <div class="stop-action">
+      <a class="maps-btn" href="#" title="Open in Maps">↗</a>
+    </div>
+  </div>
+</div>
+
+<script src="/data.js"></script>
+<script>
+// Init Google Map if available
+function initV1Map() {
+  if (typeof google === 'undefined') return;
+  const stops = TRIP_DATA.days[0].stops;
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(s => bounds.extend({lat:s.lat,lng:s.lng}));
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: bounds.getCenter(), zoom: 14,
+    disableDefaultUI: true, zoomControl: false, gestureHandling: 'greedy'
+  });
+  map.fitBounds(bounds, {top:20,bottom:60,left:20,right:20});
+  const colors = {food:'#e8553d',coffee:'#c8922a',culture:'#3a8fd4',drink:'#44a858',hotel:'#777'};
+  stops.forEach((s,i) => {
+    new google.maps.Marker({
+      position:{lat:s.lat,lng:s.lng}, map,
+      label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'800'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:colors[s.type]||'#888',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+    });
+  });
+  // Walking route
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:'#4285f4',strokeWeight:4,strokeOpacity:0.7}});
+  ds.route({origin:{lat:stops[0].lat,lng:stops[0].lng},destination:{lat:stops[stops.length-1].lat,lng:stops[stops.length-1].lng},waypoints:stops.slice(1,-1).map(s=>({location:{lat:s.lat,lng:s.lng},stopover:true})),travelMode:'WALKING'},(r,st)=>{if(st==='OK')dr.setDirections(r);});
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&callback=initV1Map"></script>
+</body>
+</html>

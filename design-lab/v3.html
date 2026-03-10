@@ -1,0 +1,310 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>V3 — Card Stack</title>
+<style>
+/*
+  VARIATION 3: "Card Stack"
+  - Map takes ~40% with rounded bottom
+  - Stops as distinct elevated cards with left color border
+  - More breathing room, restaurant-menu feel
+  - Each card is self-contained with all info
+*/
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #0e0e18;
+  --card: #191926;
+  --card-border: rgba(255,255,255,0.06);
+  --text: #ededed;
+  --dim: #7a7a96;
+  --food: #d94a35;
+  --coffee: #c89030;
+  --culture: #3d8ed0;
+  --drink: #3ca85a;
+  --hotel: #666;
+  --accent: #d94a35;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+}
+
+.map-section {
+  height: 42vh;
+  position: relative;
+}
+.map-section .map-el { width: 100%; height: 100%; }
+
+.tabs-row {
+  display: flex;
+  gap: 8px;
+  padding: 14px 16px;
+  overflow-x: auto;
+  background: var(--bg);
+  position: sticky;
+  top: 0;
+  z-index: 50;
+}
+.tabs-row::-webkit-scrollbar { display: none; }
+.tab-btn {
+  padding: 8px 16px;
+  border-radius: 10px;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border: 1px solid var(--card-border);
+  background: var(--card);
+  color: var(--dim);
+  cursor: pointer;
+  white-space: nowrap;
+}
+.tab-btn.active {
+  background: var(--text);
+  color: var(--bg);
+  border-color: var(--text);
+}
+
+.page-content { padding: 0 14px 40px; }
+
+.day-info {
+  margin-bottom: 18px;
+}
+.day-info h2 {
+  font-size: 1.15rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  margin-bottom: 2px;
+}
+.day-info .date {
+  font-size: 0.75rem;
+  color: var(--dim);
+}
+
+/* Stop cards — elevated with color accent */
+.stop-card {
+  background: var(--card);
+  border-radius: 12px;
+  padding: 14px 14px 14px 18px;
+  margin-bottom: 10px;
+  border-left: 3px solid var(--dim);
+  position: relative;
+}
+.stop-card.food { border-left-color: var(--food); }
+.stop-card.coffee { border-left-color: var(--coffee); }
+.stop-card.culture { border-left-color: var(--culture); }
+.stop-card.drink { border-left-color: var(--drink); }
+.stop-card.hotel { border-left-color: var(--hotel); }
+
+.stop-card .top-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.stop-card .name-area {
+  flex: 1;
+  min-width: 0;
+}
+.stop-card .name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+.stop-card .time-tag {
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--dim);
+  margin-top: 1px;
+}
+.stop-card .note {
+  font-size: 0.78rem;
+  color: var(--dim);
+  line-height: 1.4;
+  margin-bottom: 8px;
+}
+.stop-card .bottom-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stop-card .hours {
+  font-size: 0.62rem;
+  padding: 2px 7px;
+  border-radius: 4px;
+  background: rgba(255,255,255,0.04);
+  color: var(--dim);
+}
+.stop-card .type-label {
+  font-size: 0.6rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.stop-card .type-label.food { color: var(--food); }
+.stop-card .type-label.coffee { color: var(--coffee); }
+.stop-card .type-label.culture { color: var(--culture); }
+.stop-card .type-label.drink { color: var(--drink); }
+.stop-card .type-label.hotel { color: var(--hotel); }
+.stop-card .maps-link {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--culture);
+  text-decoration: none;
+}
+.must-badge {
+  font-size: 0.52rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  padding: 1px 5px;
+  border-radius: 3px;
+  background: var(--accent);
+  color: #fff;
+}
+</style>
+</head>
+<body>
+
+<div class="map-section">
+  <div class="map-el" id="map"></div>
+</div>
+
+<div class="tabs-row">
+  <button class="tab-btn active">Day 1</button>
+  <button class="tab-btn">Day 2</button>
+  <button class="tab-btn">Day 3</button>
+  <button class="tab-btn">Maybes</button>
+  <button class="tab-btn">Info</button>
+</div>
+
+<div class="page-content">
+  <div class="day-info">
+    <h2>Arrival, Bjørvika & Arsenal Night</h2>
+    <div class="date">Wednesday, March 11</div>
+  </div>
+
+  <div class="stop-card hotel">
+    <div class="top-row">
+      <div class="name-area">
+        <div class="name">Citybox Oslo</div>
+        <div class="time-tag">1:30 PM</div>
+      </div>
+    </div>
+    <div class="note">Drop bags. Self check-in. 3 min walk from Oslo S.</div>
+    <div class="bottom-row">
+      <span class="type-label hotel">Hotel</span>
+      <span class="hours">24hrs</span>
+      <a class="maps-link" href="#">Maps ↗</a>
+    </div>
+  </div>
+
+  <div class="stop-card coffee">
+    <div class="top-row">
+      <div class="name-area">
+        <div class="name">Hakone Coffee</div>
+        <div class="time-tag">1:50 PM</div>
+      </div>
+    </div>
+    <div class="note">Coffee #1. Pistachio croissant + coffee. 4 min walk from hotel.</div>
+    <div class="bottom-row">
+      <span class="type-label coffee">Coffee</span>
+      <span class="hours">7am–8pm</span>
+      <a class="maps-link" href="#">Maps ↗</a>
+    </div>
+  </div>
+
+  <div class="stop-card food">
+    <div class="top-row">
+      <div class="name-area">
+        <div class="name">The Little Pickle <span class="must-badge">Must</span></div>
+        <div class="time-tag">2:15 PM</div>
+      </div>
+    </div>
+    <div class="note">Late lunch — sourdough, eggs, small dishes, cinnamon rolls. Closes 3pm — arrive by 2:15 latest.</div>
+    <div class="bottom-row">
+      <span class="type-label food">Food</span>
+      <span class="hours">9am–3pm, 5–9pm</span>
+      <a class="maps-link" href="#">Maps ↗</a>
+    </div>
+  </div>
+
+  <div class="stop-card culture">
+    <div class="top-row">
+      <div class="name-area">
+        <div class="name">Oslo Opera House</div>
+        <div class="time-tag">3:10 PM</div>
+      </div>
+    </div>
+    <div class="note">Quick rooftop walk. Panoramic fjord views. Free.</div>
+    <div class="bottom-row">
+      <span class="type-label culture">Culture</span>
+      <span class="hours">Always open</span>
+      <a class="maps-link" href="#">Maps ↗</a>
+    </div>
+  </div>
+
+  <div class="stop-card drink">
+    <div class="top-row">
+      <div class="name-area">
+        <div class="name">Bohemen Sportspub <span class="must-badge">Must</span></div>
+        <div class="time-tag">6:00 PM</div>
+      </div>
+    </div>
+    <div class="note">Brighton vs Arsenal. 18:45 Oslo kick-off. Get there by 6pm. No food — can bring own.</div>
+    <div class="bottom-row">
+      <span class="type-label drink">Drink</span>
+      <span class="hours">2pm–12am</span>
+      <a class="maps-link" href="#">Maps ↗</a>
+    </div>
+  </div>
+
+  <div class="stop-card drink">
+    <div class="top-row">
+      <div class="name-area">
+        <div class="name">Himkok</div>
+        <div class="time-tag">10:00 PM</div>
+      </div>
+    </div>
+    <div class="note">World's 50 Best Bars. Own distillery. Nordic cocktails.</div>
+    <div class="bottom-row">
+      <span class="type-label drink">Drink</span>
+      <span class="hours">5pm–12am</span>
+      <a class="maps-link" href="#">Maps ↗</a>
+    </div>
+  </div>
+</div>
+
+<script src="/data.js"></script>
+<script>
+function initV3Map() {
+  if (typeof google === 'undefined') return;
+  const stops = TRIP_DATA.days[0].stops;
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(s => bounds.extend({lat:s.lat,lng:s.lng}));
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: bounds.getCenter(), zoom: 14,
+    disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative'
+  });
+  map.fitBounds(bounds, 30);
+  const colors = {food:'#d94a35',coffee:'#c89030',culture:'#3d8ed0',drink:'#3ca85a',hotel:'#666'};
+  stops.forEach((s,i) => {
+    new google.maps.Marker({
+      position:{lat:s.lat,lng:s.lng}, map,
+      label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'800'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:colors[s.type]||'#888',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+    });
+  });
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:'#4285f4',strokeWeight:4,strokeOpacity:0.7}});
+  ds.route({origin:{lat:stops[0].lat,lng:stops[0].lng},destination:{lat:stops[stops.length-1].lat,lng:stops[stops.length-1].lng},waypoints:stops.slice(1,-1).map(s=>({location:{lat:s.lat,lng:s.lng},stopover:true})),travelMode:'WALKING'},(r,st)=>{if(st==='OK')dr.setDirections(r);});
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&callback=initV3Map"></script>
+</body>
+</html>

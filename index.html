@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+  <title>Oslo Trip</title>
+
+  <!-- PWA -->
+  <link rel="manifest" href="/manifest.json">
+  <meta name="theme-color" content="#121210">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="Oslo Trip">
+  <link rel="apple-touch-icon" href="/icons/icon-192.png">
+
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+
+  <div class="map-hero">
+    <div class="map-el" id="map"></div>
+  </div>
+
+  <div class="nav" id="nav"></div>
+
+  <div id="content"></div>
+
+  <script src="/data.js"></script>
+  <script src="/app.js"></script>
+  <script async defer
+    src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&libraries=places&callback=onGoogleMapsReady">
+  </script>
+</body>
+</html>

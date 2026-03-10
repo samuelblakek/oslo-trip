@@ -1,0 +1,299 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>V5 — Dense Itinerary</title>
+<style>
+/*
+  VARIATION 5: "Dense Itinerary"
+  - Map ~35% with full bleed
+  - Ultra-compact stop rows — maximum info density
+  - Two-column time | info layout
+  - Feels like a well-organized spreadsheet went beautiful
+  - Quick-glance optimized for standing in the cold
+*/
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: 'SF Mono', SFMono-Regular, Menlo, monospace;
+  background: #0a0a12;
+  color: #e0e0ec;
+  -webkit-font-smoothing: antialiased;
+  font-size: 14px;
+}
+
+.map-area {
+  height: 36vh;
+  position: relative;
+}
+.map-area .map-el { width: 100%; height: 100%; }
+
+.header-bar {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(10,10,18,0.95);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  padding: 10px 14px;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.header-bar h1 {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+}
+.day-selector {
+  display: flex;
+  gap: 2px;
+  background: rgba(255,255,255,0.04);
+  border-radius: 6px;
+  padding: 2px;
+}
+.day-seg {
+  padding: 5px 12px;
+  border-radius: 5px;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 0.72rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  background: transparent;
+  color: #6a6a82;
+}
+.day-seg.active {
+  background: rgba(255,255,255,0.1);
+  color: #e0e0ec;
+}
+
+.schedule {
+  padding: 8px 14px 40px;
+}
+
+.schedule-header {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  padding: 12px 0 8px;
+  border-bottom: 1px solid rgba(255,255,255,0.08);
+  margin-bottom: 2px;
+}
+.schedule-header .title {
+  font-size: 1rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.schedule-header .sub {
+  font-size: 0.68rem;
+  color: #6a6a82;
+  font-family: 'SF Mono', monospace;
+  margin-top: 2px;
+}
+
+/* Dense row */
+.sched-row {
+  display: grid;
+  grid-template-columns: 58px 4px 1fr;
+  gap: 0 10px;
+  padding: 10px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+  align-items: start;
+}
+.sched-row:last-child { border-bottom: none; }
+
+.sched-time {
+  font-size: 0.72rem;
+  color: #6a6a82;
+  text-align: right;
+  padding-top: 2px;
+  font-variant-numeric: tabular-nums;
+}
+.sched-dot {
+  width: 4px;
+  border-radius: 2px;
+  min-height: 100%;
+  align-self: stretch;
+}
+.sched-dot.food { background: #d94a35; }
+.sched-dot.coffee { background: #c89030; }
+.sched-dot.culture { background: #3d8ed0; }
+.sched-dot.drink { background: #3ca85a; }
+.sched-dot.hotel { background: #555; }
+
+.sched-info {}
+.sched-name {
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-size: 0.88rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+}
+.sched-note {
+  font-size: 0.72rem;
+  color: #7a7a94;
+  line-height: 1.4;
+  margin-top: 2px;
+}
+.sched-foot {
+  display: flex;
+  gap: 8px;
+  margin-top: 4px;
+  align-items: center;
+}
+.sched-hrs {
+  font-size: 0.6rem;
+  color: #5a5a74;
+  background: rgba(255,255,255,0.03);
+  padding: 1px 5px;
+  border-radius: 3px;
+}
+.sched-go {
+  font-size: 0.6rem;
+  color: #3d8ed0;
+  text-decoration: none;
+  font-family: -apple-system, BlinkMacSystemFont, system-ui, sans-serif;
+  font-weight: 600;
+}
+.must-mark {
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  background: #d94a35;
+  color: #fff;
+  padding: 1px 4px;
+  border-radius: 2px;
+  letter-spacing: 0.04em;
+}
+</style>
+</head>
+<body>
+
+<div class="map-area">
+  <div class="map-el" id="map"></div>
+</div>
+
+<div class="header-bar">
+  <h1>Oslo Trip</h1>
+  <div class="day-selector">
+    <button class="day-seg active">D1</button>
+    <button class="day-seg">D2</button>
+    <button class="day-seg">D3</button>
+    <button class="day-seg">?</button>
+  </div>
+</div>
+
+<div class="schedule">
+  <div class="schedule-header">
+    <div class="title">Arrival, Bjørvika & Arsenal Night</div>
+    <div class="sub">WED MAR 11 — 8 STOPS — ~12km walking</div>
+  </div>
+
+  <div class="sched-row">
+    <div class="sched-time">13:30</div>
+    <div class="sched-dot hotel"></div>
+    <div class="sched-info">
+      <div class="sched-name">Citybox Oslo</div>
+      <div class="sched-note">Drop bags. Self check-in. 3 min walk from Oslo S.</div>
+      <div class="sched-foot">
+        <span class="sched-hrs">24hrs</span>
+        <a class="sched-go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sched-row">
+    <div class="sched-time">13:50</div>
+    <div class="sched-dot coffee"></div>
+    <div class="sched-info">
+      <div class="sched-name">Hakone Coffee</div>
+      <div class="sched-note">Coffee #1. Pistachio croissant. 4 min walk from hotel.</div>
+      <div class="sched-foot">
+        <span class="sched-hrs">07:00–20:00</span>
+        <a class="sched-go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sched-row">
+    <div class="sched-time">14:15</div>
+    <div class="sched-dot food"></div>
+    <div class="sched-info">
+      <div class="sched-name">The Little Pickle <span class="must-mark">Must</span></div>
+      <div class="sched-note">Late lunch — sourdough, eggs, small dishes, cinnamon rolls. Closes 15:00.</div>
+      <div class="sched-foot">
+        <span class="sched-hrs">09:00–15:00, 17:00–21:00</span>
+        <a class="sched-go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sched-row">
+    <div class="sched-time">15:10</div>
+    <div class="sched-dot culture"></div>
+    <div class="sched-info">
+      <div class="sched-name">Oslo Opera House</div>
+      <div class="sched-note">Quick rooftop walk. Panoramic fjord views. Free.</div>
+      <div class="sched-foot">
+        <span class="sched-hrs">Always open</span>
+        <a class="sched-go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sched-row">
+    <div class="sched-time">18:00</div>
+    <div class="sched-dot drink"></div>
+    <div class="sched-info">
+      <div class="sched-name">Bohemen Sportspub <span class="must-mark">Must</span></div>
+      <div class="sched-note">Brighton vs Arsenal. 18:45 kick-off. Get there by 18:00. No food — BYOB.</div>
+      <div class="sched-foot">
+        <span class="sched-hrs">14:00–00:00</span>
+        <a class="sched-go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="sched-row">
+    <div class="sched-time">22:00</div>
+    <div class="sched-dot drink"></div>
+    <div class="sched-info">
+      <div class="sched-name">Himkok</div>
+      <div class="sched-note">Post-match cocktails. World's 50 Best Bars. Own distillery.</div>
+      <div class="sched-foot">
+        <span class="sched-hrs">17:00–00:00</span>
+        <a class="sched-go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/data.js"></script>
+<script>
+function initV5Map() {
+  if (typeof google === 'undefined') return;
+  const stops = TRIP_DATA.days[0].stops;
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(s => bounds.extend({lat:s.lat,lng:s.lng}));
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: bounds.getCenter(), zoom: 14,
+    disableDefaultUI: true, zoomControl: false, gestureHandling: 'cooperative'
+  });
+  map.fitBounds(bounds, 20);
+  const colors = {food:'#d94a35',coffee:'#c89030',culture:'#3d8ed0',drink:'#3ca85a',hotel:'#555'};
+  stops.forEach((s,i) => {
+    new google.maps.Marker({
+      position:{lat:s.lat,lng:s.lng}, map,
+      label:{text:String(i+1),color:'#fff',fontSize:'10px',fontWeight:'800'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:11,fillColor:colors[s.type]||'#888',fillOpacity:1,strokeColor:'#fff',strokeWeight:1.5}
+    });
+  });
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:'#4285f4',strokeWeight:3,strokeOpacity:0.6}});
+  ds.route({origin:{lat:stops[0].lat,lng:stops[0].lng},destination:{lat:stops[stops.length-1].lat,lng:stops[stops.length-1].lng},waypoints:stops.slice(1,-1).map(s=>({location:{lat:s.lat,lng:s.lng},stopover:true})),travelMode:'WALKING'},(r,st)=>{if(st==='OK')dr.setDirections(r);});
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&callback=initV5Map"></script>
+</body>
+</html>

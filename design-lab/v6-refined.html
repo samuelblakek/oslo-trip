@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>V6 — Refined</title>
+<style>
+/*
+  REFINED: V2 Editorial + Warm Widget Palette + Big Map
+  - Warm organic dark palette (not cold navy)
+  - Map takes ~50% viewport
+  - Editorial typography with time-of-day groupings
+  - Widget-style cards with warm tinted backgrounds
+  - Generous radius, minimal borders
+*/
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg: #121210;
+  --surface: #1c1c18;
+  --card-warm: #1e1d17;
+  --card-food: #231a16;
+  --card-coffee: #211e14;
+  --card-culture: #161a20;
+  --card-drink: #151d17;
+  --card-hotel: #1a1a18;
+  --text: #f2f0ea;
+  --text-secondary: #a09e94;
+  --text-dim: #6b6960;
+  --food: #e06040;
+  --coffee: #c8982e;
+  --culture: #5a9cd4;
+  --drink: #5aac6a;
+  --hotel: #7a7870;
+  --accent: #d4c5a0;
+  --radius: 18px;
+  --radius-sm: 10px;
+}
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--text);
+  -webkit-font-smoothing: antialiased;
+  min-height: 100dvh;
+}
+
+/* ---- MAP ---- */
+.map-hero {
+  position: relative;
+  height: 52vh;
+}
+.map-hero .map-el { width: 100%; height: 100%; }
+.map-hero::after {
+  content: '';
+  position: absolute;
+  bottom: 0; left: 0; right: 0;
+  height: 100px;
+  background: linear-gradient(transparent, var(--bg));
+  pointer-events: none;
+}
+
+/* ---- NAV ---- */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(18,18,16,0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  padding: 0 18px;
+  display: flex;
+  gap: 22px;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+.nav-tab {
+  padding: 13px 0;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  border: none;
+  background: none;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+  transition: color 0.15s;
+}
+.nav-tab.active {
+  color: var(--text);
+  border-bottom-color: var(--accent);
+}
+
+/* ---- PAGE ---- */
+.page { padding: 22px 16px 50px; }
+
+/* Day heading — editorial */
+.day-num {
+  font-size: 5rem;
+  font-weight: 900;
+  color: rgba(242,240,234,0.03);
+  line-height: 0.85;
+  letter-spacing: -0.06em;
+  pointer-events: none;
+}
+.day-title {
+  font-size: 1.6rem;
+  font-weight: 800;
+  line-height: 1.12;
+  letter-spacing: -0.03em;
+  margin-top: -28px;
+  margin-bottom: 3px;
+}
+.day-meta {
+  font-size: 0.76rem;
+  color: var(--text-dim);
+  margin-bottom: 24px;
+}
+
+/* ---- TIME-OF-DAY SECTIONS ---- */
+.time-group {
+  margin-bottom: 8px;
+}
+.time-label {
+  font-size: 0.6rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  padding: 5px 10px;
+  border-radius: 6px;
+  display: inline-block;
+  margin-bottom: 10px;
+  background: rgba(255,255,255,0.05);
+  color: var(--text-secondary);
+}
+
+/* ---- STOP CARD — widget style ---- */
+.stop-widget {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  transition: background 0.15s;
+}
+.stop-widget.food { background: var(--card-food); }
+.stop-widget.coffee { background: var(--card-coffee); }
+.stop-widget.culture { background: var(--card-culture); }
+.stop-widget.drink { background: var(--card-drink); }
+.stop-widget.hotel { background: var(--card-hotel); }
+
+.stop-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 6px;
+}
+.stop-name-area { flex: 1; min-width: 0; }
+.stop-name {
+  font-size: 0.95rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  line-height: 1.3;
+}
+.stop-type-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  flex-shrink: 0;
+}
+.stop-time-badge {
+  flex-shrink: 0;
+  font-size: 0.7rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.04);
+  padding: 3px 9px;
+  border-radius: 6px;
+  font-variant-numeric: tabular-nums;
+}
+.stop-note {
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.45;
+  margin-bottom: 8px;
+}
+.stop-foot {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.stop-hours {
+  font-size: 0.62rem;
+  color: var(--text-dim);
+  background: rgba(255,255,255,0.03);
+  padding: 3px 8px;
+  border-radius: 5px;
+}
+.stop-type-label {
+  font-size: 0.58rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+}
+.stop-type-label.food { color: var(--food); }
+.stop-type-label.coffee { color: var(--coffee); }
+.stop-type-label.culture { color: var(--culture); }
+.stop-type-label.drink { color: var(--drink); }
+.stop-type-label.hotel { color: var(--hotel); }
+.stop-maps {
+  margin-left: auto;
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+}
+
+.must-badge {
+  font-size: 0.5rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  background: var(--accent);
+  color: #fff;
+  padding: 2px 5px;
+  border-radius: 4px;
+}
+
+/* ---- NARRATIVE CARD ---- */
+.narrative-card {
+  background: var(--surface);
+  border-radius: var(--radius);
+  padding: 14px 16px;
+  margin-bottom: 20px;
+  font-size: 0.78rem;
+  color: var(--text-secondary);
+  line-height: 1.55;
+  border-left: 3px solid var(--accent);
+}
+
+/* ---- ROUTE BUTTON ---- */
+.route-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  width: 100%;
+  padding: 13px;
+  margin-bottom: 20px;
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  border: none;
+  border-radius: var(--radius-sm);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  text-decoration: none;
+}
+.route-btn:active { opacity: 0.8; }
+</style>
+</head>
+<body>
+
+<div class="map-hero">
+  <div class="map-el" id="map"></div>
+</div>
+
+<div class="nav">
+  <button class="nav-tab active">Day 1</button>
+  <button class="nav-tab">Day 2</button>
+  <button class="nav-tab">Day 3</button>
+  <button class="nav-tab">Maybes</button>
+  <button class="nav-tab">Info</button>
+</div>
+
+<div class="page">
+  <div class="day-num">01</div>
+  <div class="day-title">Arrival, Bjørvika<br>& Arsenal Night</div>
+  <div class="day-meta">Wednesday, March 11 · 8 stops</div>
+
+  <div class="narrative-card">
+    Land at Gardermoen, Flytoget to Oslo S. Drop bags at Citybox, quick coffee at Hakone, late lunch at The Little Pickle before the 3pm close. Opera House rooftop, then MUNCH — free Wednesday evenings. Bohemen for Arsenal (18:45 Oslo). Fiskeriet post-match, Himkok nightcap.
+  </div>
+
+  <a class="route-btn" href="#" target="_blank">
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 00-1.42 0l-9 9a1 1 0 000 1.42l9 9a1 1 0 001.42 0l9-9a1 1 0 000-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 011-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
+    Open walking route
+  </a>
+
+  <div class="time-group">
+    <span class="time-label afternoon">Afternoon</span>
+
+    <div class="stop-widget hotel">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--hotel)"></span>
+            Citybox Oslo
+          </div>
+        </div>
+        <span class="stop-time-badge">1:30 PM</span>
+      </div>
+      <div class="stop-note">Drop bags. Self check-in. 3 min walk from Oslo S.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label hotel">Hotel</span>
+        <span class="stop-hours">24hrs</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+
+    <div class="stop-widget coffee">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--coffee)"></span>
+            Hakone Coffee
+          </div>
+        </div>
+        <span class="stop-time-badge">1:50 PM</span>
+      </div>
+      <div class="stop-note">Coffee #1. Pistachio croissant + coffee. 4 min walk from hotel.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label coffee">Coffee</span>
+        <span class="stop-hours">7am–8pm</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+
+    <div class="stop-widget food">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--food)"></span>
+            The Little Pickle
+            <span class="must-badge">Must</span>
+          </div>
+        </div>
+        <span class="stop-time-badge">2:15 PM</span>
+      </div>
+      <div class="stop-note">Late lunch — sourdough, eggs, small dishes, cinnamon rolls. Closes 3pm — arrive by 2:15 latest.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label food">Food</span>
+        <span class="stop-hours">9am–3pm, 5–9pm</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+
+    <div class="stop-widget culture">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--culture)"></span>
+            Oslo Opera House
+          </div>
+        </div>
+        <span class="stop-time-badge">3:10 PM</span>
+      </div>
+      <div class="stop-note">Quick rooftop walk. 15-20 mins. Panoramic fjord views. Free.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label culture">Culture</span>
+        <span class="stop-hours">Always open</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+
+    <div class="stop-widget culture">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--culture)"></span>
+            MUNCH
+          </div>
+        </div>
+        <span class="stop-time-badge">3:30 PM</span>
+      </div>
+      <div class="stop-note">FREE admission Wednesday evenings. Open until 9pm. 2 hours before the match — highlights + top floor café views.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label culture">Culture</span>
+        <span class="stop-hours">10am–9pm</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-group">
+    <span class="time-label evening">Evening</span>
+
+    <div class="stop-widget drink">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--drink)"></span>
+            Bohemen Sportspub
+            <span class="must-badge">Must</span>
+          </div>
+        </div>
+        <span class="stop-time-badge">6:00 PM</span>
+      </div>
+      <div class="stop-note">Brighton vs Arsenal. 18:45 Oslo kick-off. Get there by 6pm. No food served — can bring own.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label drink">Drink</span>
+        <span class="stop-hours">2pm–12am</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+
+    <div class="stop-widget food">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--food)"></span>
+            Fiskeriet Bjørvika
+          </div>
+        </div>
+        <span class="stop-time-badge">9:00 PM</span>
+      </div>
+      <div class="stop-note">Post-match seafood. Fish soup is the move. 10 min walk from Bohemen.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label food">Food</span>
+        <span class="stop-hours">11am–10:30pm</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="time-group">
+    <span class="time-label night">Late Night</span>
+
+    <div class="stop-widget drink">
+      <div class="stop-head">
+        <div class="stop-name-area">
+          <div class="stop-name">
+            <span class="stop-type-dot" style="background:var(--drink)"></span>
+            Himkok
+          </div>
+        </div>
+        <span class="stop-time-badge">10:00 PM</span>
+      </div>
+      <div class="stop-note">Post-match cocktails. World's 50 Best Bars. Own distillery. Nordic cocktails.</div>
+      <div class="stop-foot">
+        <span class="stop-type-label drink">Drink</span>
+        <span class="stop-hours">5pm–12am</span>
+        <a class="stop-maps" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/data.js"></script>
+<script>
+function initV6Map() {
+  if (typeof google === 'undefined') return;
+  const stops = TRIP_DATA.days[0].stops;
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(s => bounds.extend({lat:s.lat,lng:s.lng}));
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: bounds.getCenter(), zoom: 14,
+    disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative',
+    styles: [
+      { elementType: 'geometry', stylers: [{ color: '#1d1d1b' }] },
+      { elementType: 'labels.text.stroke', stylers: [{ color: '#1d1d1b' }] },
+      { elementType: 'labels.text.fill', stylers: [{ color: '#6b6b60' }] },
+      { featureType: 'road', elementType: 'geometry', stylers: [{ color: '#2c2c26' }] },
+      { featureType: 'road', elementType: 'labels.text.fill', stylers: [{ color: '#5a5a50' }] },
+      { featureType: 'water', elementType: 'geometry', stylers: [{ color: '#141418' }] },
+      { featureType: 'water', elementType: 'labels.text.fill', stylers: [{ color: '#3a3a40' }] },
+      { featureType: 'poi', elementType: 'geometry', stylers: [{ color: '#222220' }] },
+      { featureType: 'poi', elementType: 'labels.text.fill', stylers: [{ color: '#5a5a50' }] },
+      { featureType: 'poi.park', elementType: 'geometry', stylers: [{ color: '#1a2218' }] },
+      { featureType: 'transit', stylers: [{ visibility: 'off' }] }
+    ]
+  });
+  map.fitBounds(bounds, {top:20,bottom:40,left:20,right:20});
+  const colors = {food:'#e06040',coffee:'#c8982e',culture:'#5a9cd4',drink:'#5aac6a',hotel:'#7a7870'};
+  stops.forEach((s,i) => {
+    new google.maps.Marker({
+      position:{lat:s.lat,lng:s.lng}, map,
+      label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'800'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:14,fillColor:colors[s.type]||'#888',fillOpacity:1,strokeColor:'rgba(255,255,255,0.3)',strokeWeight:2}
+    });
+  });
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:'#a09e94',strokeWeight:3,strokeOpacity:0.5}});
+  ds.route({origin:{lat:stops[0].lat,lng:stops[0].lng},destination:{lat:stops[stops.length-1].lat,lng:stops[stops.length-1].lng},waypoints:stops.slice(1,-1).map(s=>({location:{lat:s.lat,lng:s.lng},stopover:true})),travelMode:'WALKING'},(r,st)=>{if(st==='OK')dr.setDirections(r);});
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&callback=initV6Map"></script>
+</body>
+</html>

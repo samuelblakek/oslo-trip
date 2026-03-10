@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<title>V4 — Numbered Route List</title>
+<style>
+/*
+  VARIATION 4: "Numbered Route"
+  - Map ~40% viewport, content scrolls up over it
+  - Stops numbered like a walking route
+  - Big number + name, minimal chrome
+  - Handwritten, personal travel journal feel
+  - No cards — just a clean numbered list
+*/
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+body {
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Text', system-ui, sans-serif;
+  background: #0b0b14;
+  color: #eaeaf0;
+  -webkit-font-smoothing: antialiased;
+}
+
+.map-wrap {
+  height: 42vh;
+  position: relative;
+}
+.map-wrap .map-el { width: 100%; height: 100%; }
+
+/* Floating tab row */
+.tab-float {
+  position: sticky;
+  top: 0;
+  z-index: 50;
+  background: rgba(11,11,20,0.92);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  display: flex;
+  padding: 10px 16px;
+  gap: 6px;
+}
+.tab-chip {
+  padding: 7px 14px;
+  border-radius: 8px;
+  border: none;
+  font-size: 0.76rem;
+  font-weight: 600;
+  background: transparent;
+  color: #6a6a84;
+  cursor: pointer;
+}
+.tab-chip.active {
+  background: rgba(255,255,255,0.08);
+  color: #eaeaf0;
+}
+
+.route-page {
+  padding: 20px 16px 40px;
+}
+
+.route-header {
+  margin-bottom: 22px;
+  padding-bottom: 16px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+.route-header h1 {
+  font-size: 1.4rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.2;
+}
+.route-header .meta {
+  font-size: 0.75rem;
+  color: #6a6a84;
+  margin-top: 4px;
+}
+
+/* Route stop — numbered */
+.route-stop {
+  display: flex;
+  gap: 14px;
+  padding: 16px 0;
+  border-bottom: 1px solid rgba(255,255,255,0.03);
+}
+.route-stop:last-child { border-bottom: none; }
+
+.stop-num {
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: 10px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.85rem;
+  font-weight: 800;
+  color: #fff;
+}
+.stop-num.food { background: #d94a35; }
+.stop-num.coffee { background: #c89030; }
+.stop-num.culture { background: #3d8ed0; }
+.stop-num.drink { background: #3ca85a; }
+.stop-num.hotel { background: #555; }
+
+.stop-body { flex: 1; min-width: 0; }
+.stop-heading {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  margin-bottom: 2px;
+}
+.stop-heading .name {
+  font-size: 1rem;
+  font-weight: 700;
+}
+.stop-heading .time {
+  font-size: 0.72rem;
+  color: #6a6a84;
+  font-weight: 500;
+}
+.must-dot {
+  width: 6px; height: 6px;
+  border-radius: 50%;
+  background: #d94a35;
+  display: inline-block;
+  margin-left: 2px;
+}
+.stop-body .desc {
+  font-size: 0.8rem;
+  color: #8888a0;
+  line-height: 1.45;
+  margin-top: 2px;
+}
+.stop-foot {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  margin-top: 6px;
+}
+.stop-foot .hrs {
+  font-size: 0.62rem;
+  color: #6a6a84;
+  background: rgba(255,255,255,0.04);
+  padding: 2px 7px;
+  border-radius: 4px;
+}
+.stop-foot .go {
+  font-size: 0.65rem;
+  font-weight: 600;
+  color: #3d8ed0;
+  text-decoration: none;
+}
+</style>
+</head>
+<body>
+
+<div class="map-wrap">
+  <div class="map-el" id="map"></div>
+</div>
+
+<div class="tab-float">
+  <button class="tab-chip active">Day 1</button>
+  <button class="tab-chip">Day 2</button>
+  <button class="tab-chip">Day 3</button>
+  <button class="tab-chip">Maybes</button>
+  <button class="tab-chip">Info</button>
+</div>
+
+<div class="route-page">
+  <div class="route-header">
+    <h1>Arrival, Bjørvika & Arsenal Night</h1>
+    <div class="meta">Wed Mar 11 &middot; 8 stops &middot; Bjørvika → Grünerløkka</div>
+  </div>
+
+  <div class="route-stop">
+    <div class="stop-num hotel">1</div>
+    <div class="stop-body">
+      <div class="stop-heading">
+        <span class="name">Citybox Oslo</span>
+        <span class="time">1:30 PM</span>
+      </div>
+      <div class="desc">Drop bags. Self check-in. 3 min walk from Oslo S.</div>
+      <div class="stop-foot">
+        <span class="hrs">24hrs</span>
+        <a class="go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="route-stop">
+    <div class="stop-num coffee">2</div>
+    <div class="stop-body">
+      <div class="stop-heading">
+        <span class="name">Hakone Coffee</span>
+        <span class="time">1:50 PM</span>
+      </div>
+      <div class="desc">Coffee #1. Pistachio croissant + coffee. 4 min walk from hotel.</div>
+      <div class="stop-foot">
+        <span class="hrs">7am–8pm</span>
+        <a class="go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="route-stop">
+    <div class="stop-num food">3</div>
+    <div class="stop-body">
+      <div class="stop-heading">
+        <span class="name">The Little Pickle</span>
+        <span class="must-dot"></span>
+        <span class="time">2:15 PM</span>
+      </div>
+      <div class="desc">Late lunch — sourdough, eggs, small dishes, cinnamon rolls. Closes 3pm — arrive by 2:15 latest.</div>
+      <div class="stop-foot">
+        <span class="hrs">9am–3pm, 5–9pm</span>
+        <a class="go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="route-stop">
+    <div class="stop-num culture">4</div>
+    <div class="stop-body">
+      <div class="stop-heading">
+        <span class="name">Oslo Opera House</span>
+        <span class="time">3:10 PM</span>
+      </div>
+      <div class="desc">Quick rooftop walk. 15-20 mins. Panoramic fjord views. Free.</div>
+      <div class="stop-foot">
+        <span class="hrs">Always open</span>
+        <a class="go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="route-stop">
+    <div class="stop-num drink">6</div>
+    <div class="stop-body">
+      <div class="stop-heading">
+        <span class="name">Bohemen Sportspub</span>
+        <span class="must-dot"></span>
+        <span class="time">6:00 PM</span>
+      </div>
+      <div class="desc">Brighton vs Arsenal. 18:45 Oslo kick-off. Get there by 6pm. No food — can bring own.</div>
+      <div class="stop-foot">
+        <span class="hrs">2pm–12am</span>
+        <a class="go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+
+  <div class="route-stop">
+    <div class="stop-num drink">8</div>
+    <div class="stop-body">
+      <div class="stop-heading">
+        <span class="name">Himkok</span>
+        <span class="time">10:00 PM</span>
+      </div>
+      <div class="desc">Post-match cocktails. World's 50 Best Bars. Own distillery.</div>
+      <div class="stop-foot">
+        <span class="hrs">5pm–12am</span>
+        <a class="go" href="#">Maps ↗</a>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="/data.js"></script>
+<script>
+function initV4Map() {
+  if (typeof google === 'undefined') return;
+  const stops = TRIP_DATA.days[0].stops;
+  const bounds = new google.maps.LatLngBounds();
+  stops.forEach(s => bounds.extend({lat:s.lat,lng:s.lng}));
+  const map = new google.maps.Map(document.getElementById('map'), {
+    center: bounds.getCenter(), zoom: 14,
+    disableDefaultUI: true, zoomControl: true, gestureHandling: 'cooperative'
+  });
+  map.fitBounds(bounds, 30);
+  const colors = {food:'#d94a35',coffee:'#c89030',culture:'#3d8ed0',drink:'#3ca85a',hotel:'#555'};
+  stops.forEach((s,i) => {
+    new google.maps.Marker({
+      position:{lat:s.lat,lng:s.lng}, map,
+      label:{text:String(i+1),color:'#fff',fontSize:'11px',fontWeight:'800'},
+      icon:{path:google.maps.SymbolPath.CIRCLE,scale:13,fillColor:colors[s.type]||'#888',fillOpacity:1,strokeColor:'#fff',strokeWeight:2}
+    });
+  });
+  const ds = new google.maps.DirectionsService();
+  const dr = new google.maps.DirectionsRenderer({map,suppressMarkers:true,polylineOptions:{strokeColor:'#4285f4',strokeWeight:4,strokeOpacity:0.7}});
+  ds.route({origin:{lat:stops[0].lat,lng:stops[0].lng},destination:{lat:stops[stops.length-1].lat,lng:stops[stops.length-1].lng},waypoints:stops.slice(1,-1).map(s=>({location:{lat:s.lat,lng:s.lng},stopover:true})),travelMode:'WALKING'},(r,st)=>{if(st==='OK')dr.setDirections(r);});
+}
+</script>
+<script async defer src="https://maps.googleapis.com/maps/api/js?key=AIzaSyBt0ps2bdgl3irhGu4E4kNB1m-BELR7YL8&callback=initV4Map"></script>
+</body>
+</html>
