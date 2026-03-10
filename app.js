@@ -185,14 +185,6 @@ function initMap() {
     clickableIcons: false,
     styles: MAP_STYLES
   });
-
-  map.addListener('click', () => {
-    if (activeInfoWindow) {
-      activeInfoWindow.close();
-      activeInfoWindow = null;
-      window.__activeIW = null;
-    }
-  });
 }
 
 function updateMapForTab(id) {
