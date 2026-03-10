@@ -7,7 +7,6 @@ if ('serviceWorker' in navigator) {
 let activeTab = 'day1';
 let map = null;
 let markers = [];
-let directionsRenderer = null;
 let activeInfoWindow = null;
 let googleReady = false;
 
@@ -20,7 +19,7 @@ const TYPE_COLORS = {
   hotel: '#7a7870'
 };
 
-// Light map style — hide all POIs except parks, hide transit
+// Map style — hide POIs except parks, hide transit
 const MAP_STYLES = [
   { featureType: 'poi', stylers: [{ visibility: 'off' }] },
   { featureType: 'poi.park', elementType: 'geometry', stylers: [{ visibility: 'on' }] },
@@ -76,7 +75,7 @@ function renderNav() {
   const nav = document.getElementById('nav');
   const allTabs = [
     ...TRIP_DATA.days.map(d => ({ id: d.id, label: d.label })),
-    { id: 'maybes', label: 'Maybes' }
+    { id: 'maybes', label: 'Backup Spots' }
   ];
   nav.innerHTML = allTabs.map(t =>
     `<button class="nav-tab${t.id === activeTab ? ' active' : ''}" data-tab="${t.id}">${t.label}</button>`
@@ -184,11 +183,6 @@ function initMap() {
     gestureHandling: 'cooperative',
     styles: MAP_STYLES
   });
-  directionsRenderer = new google.maps.DirectionsRenderer({
-    map,
-    suppressMarkers: true,
-    polylineOptions: { strokeColor: '#4285F4', strokeWeight: 4, strokeOpacity: 0.8 }
-  });
 }
 
 function updateMapForTab(id) {
@@ -197,7 +191,6 @@ function updateMapForTab(id) {
   // Clear old markers
   markers.forEach(m => m.setMap(null));
   markers = [];
-  directionsRenderer.setDirections({ routes: [] });
 
   let stops;
   if (id === 'maybes') {
@@ -286,19 +279,6 @@ function updateMapForTab(id) {
     });
     markers.push(marker);
   });
-
-  // Draw walking route for day views
-  if (id !== 'maybes' && stops.length > 1) {
-    const ds = new google.maps.DirectionsService();
-    ds.route({
-      origin: { lat: stops[0].lat, lng: stops[0].lng },
-      destination: { lat: stops[stops.length - 1].lat, lng: stops[stops.length - 1].lng },
-      waypoints: stops.slice(1, -1).map(s => ({ location: { lat: s.lat, lng: s.lng }, stopover: true })),
-      travelMode: google.maps.TravelMode.WALKING
-    }, (result, status) => {
-      if (status === 'OK') directionsRenderer.setDirections(result);
-    });
-  }
 }
 
 // ---- TIME-OF-DAY GROUPING ----
@@ -416,6 +396,7 @@ function renderMaybes() {
   el.className = 'page';
   el.id = 'view-maybes';
   el.innerHTML = `
+    <div class="day-num">*</div>
     <div class="day-title">Backup Spots</div>
     <div class="day-meta">Swap in if plans change \u00B7 ${TRIP_DATA.maybes.length} options</div>
     ${TRIP_DATA.maybes.map((m, i) => `
