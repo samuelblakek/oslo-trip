@@ -437,8 +437,10 @@ function focusStop(index) {
   setTimeout(() => {
     map.setZoom(15);
     map.panTo(getOffsetCenter(markers[index], 15));
-    focusFromCard = true;
-    google.maps.event.trigger(markers[index], 'click');
+    google.maps.event.addListenerOnce(map, 'idle', () => {
+      focusFromCard = true;
+      google.maps.event.trigger(markers[index], 'click');
+    });
   }, 400);
 }
 
@@ -448,8 +450,10 @@ function focusMaybe(index) {
   setTimeout(() => {
     map.setZoom(16);
     map.panTo(getOffsetCenter(markers[index], 16));
-    focusFromCard = true;
-    google.maps.event.trigger(markers[index], 'click');
+    google.maps.event.addListenerOnce(map, 'idle', () => {
+      focusFromCard = true;
+      google.maps.event.trigger(markers[index], 'click');
+    });
   }, 400);
 }
 
