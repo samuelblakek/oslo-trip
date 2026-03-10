@@ -248,11 +248,9 @@ function updateMapForTab(id) {
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
-      // Shift map so InfoWindow is visible (only for direct marker taps)
+      // Center map so InfoWindow is visible (only for direct marker taps)
       if (!focusFromCard) {
-        const mapDiv = document.getElementById('map');
-        const mapH = mapDiv ? mapDiv.offsetHeight : 400;
-        map.panBy(0, -mapH * 0.2);
+        map.panTo(getOffsetCenter(marker, map.getZoom()));
       }
       focusFromCard = false;
       setTimeout(() => {
