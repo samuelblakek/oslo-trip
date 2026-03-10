@@ -422,23 +422,21 @@ function renderMaybes() {
 
 // ---- FOCUS STOP ON MAP ----
 
-function centerWithOffset(marker, zoom) {
-  map.setZoom(zoom);
-  // Place marker in lower third of map so InfoWindow above it is centered
+function getOffsetCenter(marker, zoom) {
   const pos = marker.getPosition();
   const mapDiv = document.getElementById('map');
   const mapH = mapDiv ? mapDiv.offsetHeight : 400;
-  // Offset by 20% of map height upward in lat
   const scale = Math.pow(2, zoom);
   const latOffset = (mapH * 0.2 * 180) / (256 * scale);
-  map.setCenter({ lat: pos.lat() + latOffset, lng: pos.lng() });
+  return { lat: pos.lat() + latOffset, lng: pos.lng() };
 }
 
 function focusStop(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    centerWithOffset(markers[index], 15);
+    map.setZoom(15);
+    map.panTo(getOffsetCenter(markers[index], 15));
     focusFromCard = true;
     google.maps.event.trigger(markers[index], 'click');
   }, 400);
@@ -448,7 +446,8 @@ function focusMaybe(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    centerWithOffset(markers[index], 16);
+    map.setZoom(16);
+    map.panTo(getOffsetCenter(markers[index], 16));
     focusFromCard = true;
     google.maps.event.trigger(markers[index], 'click');
   }, 400);
