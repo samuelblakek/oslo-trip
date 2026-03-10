@@ -225,7 +225,7 @@ function updateMapForTab(id) {
         <button onclick="event.stopPropagation();if(window.__activeIW)window.__activeIW.close()" style="position:absolute;top:6px;right:6px;z-index:10;width:24px;height:24px;border-radius:50%;border:none;background:rgba(0,0,0,0.45);color:#fff;font-size:12px;line-height:1;cursor:pointer;display:flex;align-items:center;justify-content:center;padding:0;backdrop-filter:blur(4px);-webkit-backdrop-filter:blur(4px)">\u2715</button>
         ${photoUrl
           ? `<img src="${photoUrl}" style="width:100%;height:100px;object-fit:cover;display:block;border-radius:10px 10px 0 0;box-shadow:inset 0 0 0 1px rgba(0,0,0,0.08)" alt="${s.name}">`
-          : `<div style="width:100%;height:100px;background:#e8e6e1;border-radius:10px 10px 0 0"></div>`
+          : ''
         }
         <div style="padding:10px 12px 12px">
           <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
