@@ -9,6 +9,7 @@ let map = null;
 let markers = [];
 let activeInfoWindow = null;
 let googleReady = false;
+let focusFromCard = false;
 
 // Category colors
 const TYPE_COLORS = {
@@ -237,7 +238,7 @@ function updateMapForTab(id) {
         </div>
       </div>`;
 
-    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null) });
+    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null), disableAutoPan: true });
 
     marker.addListener('click', async () => {
       if (activeInfoWindow) activeInfoWindow.close();
@@ -246,6 +247,13 @@ function updateMapForTab(id) {
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
+      // Shift map so InfoWindow is visible (only for direct marker taps)
+      if (!focusFromCard) {
+        const mapDiv = document.getElementById('map');
+        const mapH = mapDiv ? mapDiv.offsetHeight : 400;
+        map.panBy(0, -mapH * 0.2);
+      }
+      focusFromCard = false;
       setTimeout(() => {
         const chr = document.querySelector('.gm-style-iw-chr');
         if (chr) chr.style.display = 'none';
@@ -414,12 +422,24 @@ function renderMaybes() {
 
 // ---- FOCUS STOP ON MAP ----
 
+function centerWithOffset(marker, zoom) {
+  map.setZoom(zoom);
+  // Place marker in lower third of map so InfoWindow above it is centered
+  const pos = marker.getPosition();
+  const mapDiv = document.getElementById('map');
+  const mapH = mapDiv ? mapDiv.offsetHeight : 400;
+  // Offset by 20% of map height upward in lat
+  const scale = Math.pow(2, zoom);
+  const latOffset = (mapH * 0.2 * 180) / (256 * scale);
+  map.setCenter({ lat: pos.lat() + latOffset, lng: pos.lng() });
+}
+
 function focusStop(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    map.setZoom(15);
-    map.setCenter(markers[index].getPosition());
+    centerWithOffset(markers[index], 15);
+    focusFromCard = true;
     google.maps.event.trigger(markers[index], 'click');
   }, 400);
 }
@@ -428,8 +448,8 @@ function focusMaybe(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    map.setZoom(16);
-    map.setCenter(markers[index].getPosition());
+    centerWithOffset(markers[index], 16);
+    focusFromCard = true;
     google.maps.event.trigger(markers[index], 'click');
   }, 400);
 }
