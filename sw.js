@@ -1,13 +1,13 @@
-const CACHE_NAME = 'oslo-trip-v8';
+const CACHE_NAME = 'oslo-trip-v9';
 const ASSETS = [
-  '/',
-  '/index.html',
-  '/style.css',
-  '/app.js',
-  '/data.js',
-  '/manifest.json',
-  '/icons/icon-192.png',
-  '/icons/icon-512.png'
+  './',
+  'index.html',
+  'style.css',
+  'app.js',
+  'data.js',
+  'manifest.json',
+  'icons/icon-192.png',
+  'icons/icon-512.png'
 ];
 
 self.addEventListener('install', e => {

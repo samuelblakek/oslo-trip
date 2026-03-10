@@ -2,7 +2,7 @@
   "name": "Oslo Solo Food Trip",
   "short_name": "Oslo Trip",
   "description": "Solo food trip to Oslo, March 11-14 2026",
-  "start_url": "/",
+  "start_url": ".",
   "display": "standalone",
   "background_color": "#121210",
   "theme_color": "#121210",
