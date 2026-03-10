@@ -237,17 +237,19 @@ function updateMapForTab(id) {
         </div>
       </div>`;
 
-    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null) });
+    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null), disableAutoPan: true });
 
     marker.addListener('click', async () => {
       if (activeInfoWindow) activeInfoWindow.close();
       const photo = photoCache[s.name] || null;
       infoWindow.setContent(buildContent(photo));
-      map.panTo(marker.getPosition());
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
-      // Ensure info window is visible
+
+      // Instant jump so marker + InfoWindow are both visible (no animated pan)
+      moveCameraToMarkerWithOffset(marker, 100);
+
       setTimeout(() => {
         // Hide Google's default close button
         const chr = document.querySelector('.gm-style-iw-chr');
@@ -415,19 +417,26 @@ function renderMaybes() {
   content.appendChild(el);
 }
 
+// ---- MAP CAMERA HELPER ----
+
+function moveCameraToMarkerWithOffset(marker, pxUp, zoom) {
+  const proj = map.getProjection();
+  if (!proj) { map.setCenter(marker.getPosition()); return; }
+  const z = zoom || map.getZoom();
+  const scale = Math.pow(2, z);
+  const pt = proj.fromLatLngToPoint(marker.getPosition());
+  const offset = new google.maps.Point(pt.x, pt.y - pxUp / scale);
+  map.moveCamera({ center: proj.fromPointToLatLng(offset), zoom: z });
+}
+
 // ---- FOCUS STOP ON MAP ----
 
 function focusStop(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    const marker = markers[index];
-    map.setZoom(15);
-    map.panTo(marker.getPosition());
-    setTimeout(() => {
-      map.panBy(0, -80);
-      google.maps.event.trigger(marker, 'click');
-    }, 200);
+    moveCameraToMarkerWithOffset(markers[index], 100, 15);
+    google.maps.event.trigger(markers[index], 'click');
   }, 400);
 }
 
@@ -435,13 +444,8 @@ function focusMaybe(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    const marker = markers[index];
-    map.setZoom(16);
-    map.panTo(marker.getPosition());
-    setTimeout(() => {
-      map.panBy(0, -80);
-      google.maps.event.trigger(marker, 'click');
-    }, 200);
+    moveCameraToMarkerWithOffset(markers[index], 100, 16);
+    google.maps.event.trigger(markers[index], 'click');
   }, 400);
 }
 
