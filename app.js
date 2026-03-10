@@ -237,25 +237,18 @@ function updateMapForTab(id) {
         </div>
       </div>`;
 
-    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null), disableAutoPan: true });
+    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null) });
 
     marker.addListener('click', async () => {
       if (activeInfoWindow) activeInfoWindow.close();
       const photo = photoCache[s.name] || null;
       infoWindow.setContent(buildContent(photo));
+      map.panTo(marker.getPosition());
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
-      // Pan map so info window is fully visible
+      // Ensure info window is visible
       setTimeout(() => {
-        const iwEl = document.querySelector('.gm-style-iw-c');
-        if (iwEl) {
-          const mapRect = document.getElementById('map').getBoundingClientRect();
-          const iwRect = iwEl.getBoundingClientRect();
-          let panY = 0;
-          if (iwRect.top < mapRect.top + 10) panY = iwRect.top - mapRect.top - 10;
-          if (panY) map.panBy(0, panY);
-        }
         // Hide Google's default close button
         const chr = document.querySelector('.gm-style-iw-chr');
         if (chr) chr.style.display = 'none';
