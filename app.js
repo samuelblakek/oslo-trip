@@ -470,4 +470,24 @@ document.addEventListener('touchend', e => {
   if (dx > 0 && idx > 0) switchTab(allIds[idx - 1]);
 }, { passive: true });
 
+// ---- PRESS FEEDBACK (touch + mouse) ----
+
+const PRESSABLE = '.stop-widget, .maybe-card, .nav-tab, .route-btn';
+function pressStart(e) {
+  const target = e.touches ? e.touches[0].target : e.target;
+  const el = target.closest(PRESSABLE);
+  if (el) el.classList.add('pressed');
+}
+function pressEnd() {
+  setTimeout(() => {
+    document.querySelectorAll('.pressed').forEach(el => el.classList.remove('pressed'));
+  }, 150);
+}
+document.addEventListener('touchstart', pressStart, { passive: true });
+document.addEventListener('touchend', pressEnd, { passive: true });
+document.addEventListener('touchcancel', pressEnd, { passive: true });
+document.addEventListener('mousedown', pressStart);
+document.addEventListener('mouseup', pressEnd);
+document.addEventListener('mouseleave', pressEnd);
+
 document.addEventListener('DOMContentLoaded', init);

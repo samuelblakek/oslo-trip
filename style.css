@@ -64,6 +64,7 @@ body {
   transition: color 0.15s;
   white-space: nowrap;
 }
+.nav-tab.pressed { opacity: 0.6 !important; }
 .nav-tab.active {
   color: var(--text);
   border-bottom-color: var(--accent);
@@ -131,7 +132,7 @@ body {
   text-decoration: none;
   -webkit-tap-highlight-color: transparent;
 }
-.route-btn:active { opacity: 0.8; }
+.route-btn:active, .route-btn.pressed { opacity: 0.6 !important; }
 .route-btn svg { width: 16px; height: 16px; }
 
 /* ---- TIME-OF-DAY SECTIONS ---- */
@@ -165,7 +166,7 @@ body {
     inset 0 1px 0 rgba(255,255,255,0.03);
   transition: opacity 0.15s, transform 0.15s;
 }
-.stop-widget:active { opacity: 0.85; transform: scale(0.985); }
+.stop-widget.pressed { opacity: 0.6 !important; transform: scale(0.97) !important; }
 .stop-widget.food { background: var(--card-food); }
 .stop-widget.coffee { background: var(--card-coffee); }
 .stop-widget.culture { background: var(--card-culture); }
@@ -286,7 +287,7 @@ body {
     inset 0 1px 0 rgba(255,255,255,0.03);
   transition: opacity 0.15s, transform 0.15s;
 }
-.maybe-card:active { opacity: 0.85; transform: scale(0.985); }
+.maybe-card.pressed { opacity: 0.6 !important; transform: scale(0.97) !important; }
 .maybe-head {
   display: flex;
   justify-content: space-between;
@@ -405,4 +406,9 @@ body {
 }
 .gm-style .gm-style-iw-c .gm-style-iw-d > div {
   max-height: none !important;
+}
+.gm-style .gm-style-iw-c:focus,
+.gm-style .gm-style-iw-c *:focus {
+  outline: none !important;
+  box-shadow: none !important;
 }
