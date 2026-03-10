@@ -182,7 +182,16 @@ function initMap() {
     disableDefaultUI: true,
     zoomControl: true,
     gestureHandling: 'cooperative',
+    clickableIcons: false,
     styles: MAP_STYLES
+  });
+
+  map.addListener('click', () => {
+    if (activeInfoWindow) {
+      activeInfoWindow.close();
+      activeInfoWindow = null;
+      window.__activeIW = null;
+    }
   });
 }
 

@@ -1,4 +1,4 @@
-const CACHE_NAME = 'oslo-trip-v19';
+const CACHE_NAME = 'oslo-trip-v20';
 const ASSETS = [
   './',
   'index.html',
