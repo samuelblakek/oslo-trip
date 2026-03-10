@@ -75,7 +75,7 @@ body {
   display: none;
   padding: 22px 16px calc(50px + var(--safe-bottom));
 }
-.page.active { display: block; }
+.page.active { display: block; animation: pageFade 0.25s ease-out; }
 
 /* ---- EDITORIAL DAY HEADING ---- */
 .day-num {
@@ -367,6 +367,12 @@ body {
   display: block;
   text-align: center;
   margin-top: 2px;
+}
+
+/* ---- PAGE TRANSITION ---- */
+@keyframes pageFade {
+  from { opacity: 0; }
+  to { opacity: 1; }
 }
 
 /* ---- STAGGERED ENTRANCE ANIMATION ---- */

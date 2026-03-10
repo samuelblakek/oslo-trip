@@ -434,12 +434,16 @@ function focusStop(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    map.setZoom(15);
-    map.panTo(getOffsetCenter(markers[index], 15));
-    google.maps.event.addListenerOnce(map, 'idle', () => {
-      focusFromCard = true;
-      google.maps.event.trigger(markers[index], 'click');
-    });
+    const target = getOffsetCenter(markers[index], 15);
+    map.moveCamera({ center: target, zoom: 15 });
+    // Small delay then panTo same spot to trigger a smooth settle
+    setTimeout(() => {
+      map.panTo(target);
+      google.maps.event.addListenerOnce(map, 'idle', () => {
+        focusFromCard = true;
+        google.maps.event.trigger(markers[index], 'click');
+      });
+    }, 50);
   }, 400);
 }
 
@@ -447,12 +451,15 @@ function focusMaybe(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    map.setZoom(16);
-    map.panTo(getOffsetCenter(markers[index], 16));
-    google.maps.event.addListenerOnce(map, 'idle', () => {
-      focusFromCard = true;
-      google.maps.event.trigger(markers[index], 'click');
-    });
+    const target = getOffsetCenter(markers[index], 16);
+    map.moveCamera({ center: target, zoom: 16 });
+    setTimeout(() => {
+      map.panTo(target);
+      google.maps.event.addListenerOnce(map, 'idle', () => {
+        focusFromCard = true;
+        google.maps.event.trigger(markers[index], 'click');
+      });
+    }, 50);
   }, 400);
 }
 
