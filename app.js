@@ -52,12 +52,16 @@ const WEATHER_ICONS = {
   82: '\uD83C\uDF26\uFE0F', 85: '\uD83C\uDF28\uFE0F', 86: '\uD83C\uDF28\uFE0F'
 };
 
+// Photo cache — keyed by stop name
+const photoCache = {};
+
 // Called by Google Maps script callback
 function onGoogleMapsReady() {
   googleReady = true;
   initMap();
   updateMapForTab(activeTab);
   fetchWeather();
+  preloadPhotos();
 }
 window.onGoogleMapsReady = onGoogleMapsReady;
 
@@ -138,6 +142,36 @@ function fetchWeather() {
     });
 }
 
+// ---- PHOTO PRELOAD ----
+
+async function preloadPhotos() {
+  try {
+    const { Place } = await google.maps.importLibrary('places');
+    const allStops = [
+      ...TRIP_DATA.days.flatMap(d => d.stops),
+      ...TRIP_DATA.maybes
+    ];
+    // Fetch in small batches to avoid rate limits
+    for (const stop of allStops) {
+      if (photoCache[stop.name]) continue;
+      try {
+        const { places } = await Place.searchByText({
+          textQuery: stop.name + ' Oslo',
+          fields: ['photos'],
+          maxResultCount: 1
+        });
+        if (places?.[0]?.photos?.length > 0) {
+          photoCache[stop.name] = places[0].photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
+        } else {
+          photoCache[stop.name] = '';
+        }
+      } catch (_) {
+        photoCache[stop.name] = '';
+      }
+    }
+  } catch (_) {}
+}
+
 // ---- MAP ----
 
 function initMap() {
@@ -190,7 +224,6 @@ function updateMapForTab(id) {
     });
 
     const typeLabel = s.type.charAt(0).toUpperCase() + s.type.slice(1);
-    let cachedPhotoUrl = null;
 
     const buildContent = (photoUrl) => `
       <div style="font-family:-apple-system,system-ui,sans-serif;width:230px;-webkit-font-smoothing:antialiased;position:relative">
@@ -215,7 +248,8 @@ function updateMapForTab(id) {
 
     marker.addListener('click', async () => {
       if (activeInfoWindow) activeInfoWindow.close();
-      infoWindow.setContent(buildContent(cachedPhotoUrl));
+      const photo = photoCache[s.name] || null;
+      infoWindow.setContent(buildContent(photo));
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
@@ -234,8 +268,8 @@ function updateMapForTab(id) {
         if (chr) chr.style.display = 'none';
       }, 50);
 
-      if (cachedPhotoUrl === null) {
-        cachedPhotoUrl = '';
+      // If photo not preloaded yet, fetch on demand
+      if (!photo && !photoCache.hasOwnProperty(s.name)) {
         try {
           const { Place } = await google.maps.importLibrary('places');
           const { places } = await Place.searchByText({
@@ -244,8 +278,8 @@ function updateMapForTab(id) {
             maxResultCount: 1
           });
           if (places?.[0]?.photos?.length > 0) {
-            cachedPhotoUrl = places[0].photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
-            infoWindow.setContent(buildContent(cachedPhotoUrl));
+            photoCache[s.name] = places[0].photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
+            infoWindow.setContent(buildContent(photoCache[s.name]));
           }
         } catch (_) {}
       }
@@ -437,11 +471,16 @@ function focusMaybe(index) {
   }, 400);
 }
 
-// ---- TOUCH SWIPE ----
+// ---- TOUCH SWIPE (ignore map area) ----
 
 let touchStartX = 0;
-document.addEventListener('touchstart', e => { touchStartX = e.touches[0].clientX; }, { passive: true });
+let touchStartedOnMap = false;
+document.addEventListener('touchstart', e => {
+  touchStartX = e.touches[0].clientX;
+  touchStartedOnMap = !!e.target.closest('.map-hero');
+}, { passive: true });
 document.addEventListener('touchend', e => {
+  if (touchStartedOnMap) return;
   const dx = e.changedTouches[0].clientX - touchStartX;
   if (Math.abs(dx) < 80) return;
   const allIds = [...TRIP_DATA.days.map(d => d.id), 'maybes'];
