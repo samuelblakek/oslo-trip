@@ -237,7 +237,7 @@ function updateMapForTab(id) {
         </div>
       </div>`;
 
-    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null), disableAutoPan: true });
+    const infoWindow = new google.maps.InfoWindow({ content: buildContent(null) });
 
     marker.addListener('click', async () => {
       if (activeInfoWindow) activeInfoWindow.close();
@@ -246,17 +246,7 @@ function updateMapForTab(id) {
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
-      // Pan map so info window is fully visible
       setTimeout(() => {
-        const iwEl = document.querySelector('.gm-style-iw-c');
-        if (iwEl) {
-          const mapRect = document.getElementById('map').getBoundingClientRect();
-          const iwRect = iwEl.getBoundingClientRect();
-          let panY = 0;
-          if (iwRect.top < mapRect.top + 10) panY = iwRect.top - mapRect.top - 10;
-          if (panY) map.panBy(0, panY);
-        }
-        // Hide Google's default close button
         const chr = document.querySelector('.gm-style-iw-chr');
         if (chr) chr.style.display = 'none';
       }, 50);
@@ -428,12 +418,9 @@ function focusStop(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    const marker = markers[index];
     map.setZoom(15);
-    map.panTo(marker.getPosition());
-    google.maps.event.addListenerOnce(map, 'idle', () => {
-      google.maps.event.trigger(marker, 'click');
-    });
+    map.setCenter(markers[index].getPosition());
+    google.maps.event.trigger(markers[index], 'click');
   }, 400);
 }
 
@@ -441,12 +428,9 @@ function focusMaybe(index) {
   if (!map || !markers[index]) return;
   window.scrollTo({ top: 0, behavior: 'smooth' });
   setTimeout(() => {
-    const marker = markers[index];
     map.setZoom(16);
-    map.panTo(marker.getPosition());
-    google.maps.event.addListenerOnce(map, 'idle', () => {
-      google.maps.event.trigger(marker, 'click');
-    });
+    map.setCenter(markers[index].getPosition());
+    google.maps.event.trigger(markers[index], 'click');
   }, 400);
 }
 
