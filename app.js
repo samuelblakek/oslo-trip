@@ -501,4 +501,9 @@ document.addEventListener('mousedown', pressStart);
 document.addEventListener('mouseup', pressEnd);
 document.addEventListener('mouseleave', pressEnd);
 
+// Re-fetch weather when app becomes visible (standalone PWA stays in memory)
+document.addEventListener('visibilitychange', () => {
+  if (document.visibilityState === 'visible') fetchWeather();
+});
+
 document.addEventListener('DOMContentLoaded', init);
