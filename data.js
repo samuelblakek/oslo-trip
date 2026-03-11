@@ -45,14 +45,14 @@ const TRIP_DATA = {
       id: "day3",
       label: "Day 3",
       date: "Fri Mar 13",
-      title: "Fortress, Vikings & Tabuno Splurge",
-      narrative: "Last full day — keep it easy tonight, early flight tomorrow. Coffee at Fuglen, then Akershus Fortress — no rush on the ramparts. Casual pizza lunch at Duken. Historical Museum for VIKINGR (closes 4pm Friday). Straight to Tabuno at 5pm for the big splurge. Himkok nightcap, then early night.",
+      title: "Fortress, Vikings & Tabuno",
+      narrative: "Last full day — keep it easy tonight, early flight tomorrow. Coffee at Fuglen, then Akershus Fortress — no rush on the ramparts. Casual pizza lunch at Duken. Historical Museum for VIKINGR (closes 4pm Friday). Straight to Tabuno at 5pm. Himkok nightcap, then early night.",
       stops: [
         { time: "9:00 AM", name: "Fuglen Coffee Roasters", type: "coffee", notes: "Coffee #1 (and only today). Oslo staple. Own roastery. Opens 7am. Cool 1963 interiors.", hours: "7am–12am", mustVisit: false, rating: 4.5, lat: 59.90622, lng: 10.77465, mapsUrl: "https://maps.google.com/?cid=2299435593279043043" },
         { time: "9:45 AM", name: "Akershus Fortress", type: "culture", notes: "Medieval castle, 1300s. Free. Walk the ramparts, fjord views, Aker Brygge panorama. No rush. Allow 75 mins.", hours: "6am–9pm", mustVisit: false, rating: 4.6, lat: 59.90759, lng: 10.73708, mapsUrl: "https://maps.google.com/?cid=12261345591794003386" },
         { time: "1:00 PM", name: "Duken Bar&Pizza", type: "food", notes: "Casual pizza lunch. Opens 1pm Fri. Szechuan potato, kebab pizza, Thai pizza. Walk-in.", hours: "1pm–2am", mustVisit: true, rating: 4.5, lat: 59.92541, lng: 10.76088, mapsUrl: "https://maps.google.com/?cid=10102816764727929641" },
         { time: "2:15 PM", name: "Historical Museum", type: "culture", notes: "VIKINGR exhibition — Viking Age artefacts. Closes 4pm Fridays. Allow 1.5 hours. Beautiful Art Nouveau building.", hours: "11am–4pm", mustVisit: false, rating: 4.4, lat: 59.91679, lng: 10.73552, mapsUrl: "https://maps.google.com/?cid=2368397936845482079" },
-        { time: "5:00 PM", name: "Tabuno", type: "food", notes: "BIG SPLURGE. Filipino-Norwegian tasting menu. Chef Ivy Tabuno Solheim. 5pm sitting BOOKED. Set menu only.", hours: "5pm–12am", mustVisit: true, rating: 4.8, lat: 59.90672, lng: 10.76011, mapsUrl: "https://maps.google.com/?cid=6992344087933554058" },
+        { time: "5:00 PM", name: "Tabuno", type: "food", notes: "Filipino-Norwegian tasting menu. Chef Ivy Tabuno Solheim. 5pm sitting BOOKED. Set menu only.", hours: "5pm–12am", mustVisit: true, rating: 4.8, lat: 59.90672, lng: 10.76011, mapsUrl: "https://maps.google.com/?cid=6992344087933554058" },
         { time: "7:30 PM", name: "Himkok", type: "drink", notes: "Nightcap. Don't go too hard — early flight tomorrow. Open until 2am Fridays.", hours: "5pm–2am", mustVisit: false, rating: 4.6, lat: 59.91429, lng: 10.75153, mapsUrl: "https://maps.google.com/?cid=6679656177791996322" }
       ]
     }
