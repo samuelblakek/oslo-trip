@@ -1,6 +1,6 @@
 // Register service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js?v=29').catch(() => {});
+  navigator.serviceWorker.register('sw.js?v=30').catch(() => {});
 }
 
 // State
@@ -505,5 +505,12 @@ document.addEventListener('mouseleave', pressEnd);
 document.addEventListener('visibilitychange', () => {
   if (document.visibilityState === 'visible') fetchWeather();
 });
+
+// Open native app via custom URL scheme, fall back to web URL
+function openApp(scheme, fallback) {
+  const t = setTimeout(() => { window.location.href = fallback; }, 500);
+  window.location.href = scheme;
+  window.addEventListener('blur', () => clearTimeout(t), { once: true });
+}
 
 document.addEventListener('DOMContentLoaded', init);
