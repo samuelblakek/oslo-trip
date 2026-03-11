@@ -1,6 +1,6 @@
 // Register service worker
 if ('serviceWorker' in navigator) {
-  navigator.serviceWorker.register('sw.js?v=33').catch(() => {});
+  navigator.serviceWorker.register('sw.js').catch(() => {});
 }
 
 // State
@@ -501,9 +501,14 @@ document.addEventListener('mousedown', pressStart);
 document.addEventListener('mouseup', pressEnd);
 document.addEventListener('mouseleave', pressEnd);
 
-// Re-fetch weather when app becomes visible (standalone PWA stays in memory)
+// Re-fetch weather + check for SW updates when app becomes visible
 document.addEventListener('visibilitychange', () => {
-  if (document.visibilityState === 'visible') fetchWeather();
+  if (document.visibilityState === 'visible') {
+    fetchWeather();
+    if (navigator.serviceWorker) {
+      navigator.serviceWorker.getRegistration().then(reg => { if (reg) reg.update(); });
+    }
+  }
 });
 
 document.addEventListener('DOMContentLoaded', init);
