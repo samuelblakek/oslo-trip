@@ -1,4 +1,4 @@
-const CACHE_NAME = 'oslo-trip-v27';
+const CACHE_NAME = 'oslo-trip-v28';
 const ASSETS = [
   './',
   'index.html',
@@ -37,8 +37,14 @@ self.addEventListener('fetch', e => {
     return;
   }
 
-  // Cache-first for app assets
+  // Network-first for app assets (always get latest when online, cache fallback for offline)
   e.respondWith(
-    caches.match(e.request).then(cached => cached || fetch(e.request))
+    fetch(e.request)
+      .then(response => {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+        return response;
+      })
+      .catch(() => caches.match(e.request))
   );
 });
