@@ -20,6 +20,7 @@
   --radius: 18px;
   --radius-sm: 10px;
   --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --safe-top: env(safe-area-inset-top, 0px);
 }
 
 html { font-size: 16px; -webkit-text-size-adjust: 100%; }
@@ -45,6 +46,7 @@ body {
   justify-content: center;
   gap: 24px;
   padding: 12px 18px;
+  padding-top: calc(var(--safe-top) + 12px);
   background: var(--surface);
   border-bottom: 1px solid rgba(255,255,255,0.04);
 }
