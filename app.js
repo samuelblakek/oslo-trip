@@ -412,7 +412,9 @@ function showEditSheet(stopName, dayId, e) {
 // ---- API KEY + AUTO-PLAN ----
 
 function getApiKey() {
-  return localStorage.getItem('oslo-api-key') || '';
+  return (typeof APP_CONFIG !== 'undefined' && APP_CONFIG.apiKey)
+    || localStorage.getItem('oslo-api-key')
+    || '';
 }
 
 function showApiKeyPrompt() {
