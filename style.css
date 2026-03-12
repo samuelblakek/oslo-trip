@@ -285,12 +285,26 @@ body {
 .stop-type-label.hotel { color: var(--hotel); }
 
 .stop-maps {
+  font-size: 0.62rem;
+  font-weight: 600;
+  color: var(--text-dim);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+.edit-btn {
   margin-left: auto;
   font-size: 0.65rem;
   font-weight: 600;
   color: var(--text-dim);
-  text-decoration: none;
+  background: rgba(255,255,255,0.06);
+  border: none;
+  padding: 4px 10px;
+  border-radius: 6px;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
 }
+.edit-btn:active { opacity: 0.5; }
 
 .stop-rating {
   font-size: 0.65rem;
@@ -434,6 +448,351 @@ body {
 .page.active .maybe-card:nth-child(6) { animation-delay: 0.2s; }
 .page.active .maybe-card:nth-child(7) { animation-delay: 0.24s; }
 .page.active .maybe-card:nth-child(8) { animation-delay: 0.28s; }
+
+/* ---- DONE STATE ---- */
+.stop-widget.done, .maybe-card.done {
+  opacity: 0.45;
+}
+.stop-widget.done .stop-name-text, .maybe-card.done .stop-name-text {
+  text-decoration: line-through;
+  text-decoration-color: rgba(242,240,234,0.3);
+}
+.stop-name-text { flex-shrink: 1; min-width: 0; }
+.done-btn {
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  border: 2px solid var(--text-dim);
+  background: none;
+  cursor: pointer;
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+.done-btn.checked {
+  border-color: #5aac6a;
+  background: #5aac6a;
+}
+.done-btn svg { display: none; }
+.done-btn.checked svg { display: block; }
+
+/* ---- STOP ACTIONS (move button) ---- */
+.stop-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin-left: auto;
+}
+.move-btn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: none;
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+.move-btn:active { opacity: 0.5; }
+
+/* ---- EDITABLE TIME & DURATION ---- */
+.stop-time-area {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 2px;
+  flex-shrink: 0;
+}
+.stop-time-badge {
+  cursor: pointer;
+}
+.stop-time-badge:active { opacity: 0.5; }
+.stop-duration {
+  font-size: 0.58rem;
+  color: var(--text-dim);
+  cursor: pointer;
+  padding: 1px 4px;
+  border-radius: 4px;
+  -webkit-tap-highlight-color: transparent;
+}
+.stop-duration:active { opacity: 0.5; }
+
+/* ---- TIME/DURATION EDIT MODAL ---- */
+.edit-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+.edit-sheet {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + var(--safe-bottom));
+  animation: slideUp 0.2s ease-out;
+}
+.edit-sheet h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 16px;
+  color: var(--text);
+}
+.edit-sheet label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 6px;
+}
+.edit-sheet input[type="time"],
+.edit-sheet input[type="number"] {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  margin-bottom: 14px;
+  -webkit-appearance: none;
+}
+.edit-sheet input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.edit-sheet-actions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+.edit-sheet-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.edit-sheet-actions .btn-cancel {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+}
+.edit-sheet-actions .btn-save {
+  background: var(--accent);
+  color: #1a1a18;
+}
+
+/* ---- MOVE MODAL (bottom sheet) ---- */
+.move-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.6);
+  z-index: 200;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  animation: fadeIn 0.15s ease-out;
+}
+.move-sheet {
+  width: 100%;
+  max-width: 400px;
+  background: var(--surface);
+  border-radius: 20px 20px 0 0;
+  padding: 20px 20px calc(20px + var(--safe-bottom));
+  animation: slideUp 0.2s ease-out;
+}
+.move-sheet h3 {
+  font-size: 0.9rem;
+  font-weight: 700;
+  margin-bottom: 6px;
+  color: var(--text);
+}
+.move-sheet .move-stop-name {
+  font-size: 0.72rem;
+  color: var(--text-secondary);
+  margin-bottom: 16px;
+}
+.move-day-options {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 16px;
+}
+.move-day-btn {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.06);
+  background: rgba(255,255,255,0.04);
+  color: var(--text);
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+  transition: all 0.15s;
+}
+.move-day-btn:active { opacity: 0.5; }
+.move-day-btn.current {
+  opacity: 0.3;
+  pointer-events: none;
+}
+.move-day-btn .move-day-label { flex: 1; }
+.move-day-btn .move-day-date {
+  font-size: 0.68rem;
+  color: var(--text-dim);
+  font-weight: 400;
+}
+.move-time-input {
+  display: none;
+  margin-bottom: 16px;
+}
+.move-time-input.visible { display: block; }
+.move-time-input label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  display: block;
+  margin-bottom: 6px;
+}
+.move-time-input input[type="time"] {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  -webkit-appearance: none;
+}
+.move-time-input input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.move-sheet-actions {
+  display: flex;
+  gap: 10px;
+}
+.move-sheet-actions button {
+  flex: 1;
+  padding: 12px;
+  border-radius: var(--radius-sm);
+  border: none;
+  font-size: 0.82rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.move-sheet-actions .btn-cancel {
+  background: rgba(255,255,255,0.06);
+  color: var(--text-dim);
+}
+.move-sheet-actions .btn-move {
+  background: var(--accent);
+  color: #1a1a18;
+}
+.move-sheet-actions .btn-move:disabled {
+  opacity: 0.3;
+  cursor: default;
+}
+
+/* ---- ADD PLACE BUTTON ---- */
+.add-place-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  width: 100%;
+  padding: 14px;
+  margin-top: 4px;
+  margin-bottom: 8px;
+  background: none;
+  color: var(--text-dim);
+  border: 1px dashed rgba(255,255,255,0.1);
+  border-radius: var(--radius);
+  font-size: 0.78rem;
+  font-weight: 600;
+  cursor: pointer;
+  font-family: inherit;
+  -webkit-tap-highlight-color: transparent;
+}
+.add-place-btn:active { opacity: 0.5; }
+
+/* ---- ADD SHEET FORM ---- */
+.edit-sheet input[type="text"],
+.edit-sheet textarea,
+.edit-sheet select {
+  width: 100%;
+  padding: 10px 14px;
+  border-radius: var(--radius-sm);
+  border: 1px solid rgba(255,255,255,0.1);
+  background: rgba(255,255,255,0.06);
+  color: var(--text);
+  font-size: 0.9rem;
+  font-family: inherit;
+  margin-bottom: 14px;
+  -webkit-appearance: none;
+}
+.edit-sheet textarea {
+  min-height: 60px;
+  resize: vertical;
+}
+.edit-sheet select {
+  cursor: pointer;
+}
+.edit-sheet select option {
+  background: var(--surface);
+  color: var(--text);
+}
+.edit-sheet input[type="text"]:focus,
+.edit-sheet textarea:focus,
+.edit-sheet select:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+.edit-section-label {
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: var(--text-dim);
+  margin-top: 6px;
+  margin-bottom: 10px;
+  padding-top: 12px;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+
+/* ---- BOTTOM SHEET ANIMATIONS ---- */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to { transform: translateY(0); }
+}
 
 /* Google Maps overrides */
 .gm-style .gm-style-iw-c {

@@ -11,6 +11,15 @@ let activeInfoWindow = null;
 let googleReady = false;
 let focusFromCard = false;
 
+// Working data — mutable copy of TRIP_DATA with user modifications applied
+let workingData = null;
+
+// User state — persisted to localStorage
+let userState = { done: {}, timeOverrides: {}, durationOverrides: {}, moves: [], added: [] };
+
+// Default durations by type (minutes)
+const DEFAULT_DURATIONS = { coffee: 30, food: 45, hotel: 15, culture: 120, drink: 30 };
+
 // Category colors
 const TYPE_COLORS = {
   food: '#e06040',
@@ -55,6 +64,387 @@ const WEATHER_ICONS = {
 // Photo cache — keyed by stop name
 const photoCache = {};
 
+// ---- STATE MANAGEMENT ----
+
+function loadUserState() {
+  try {
+    const raw = localStorage.getItem('oslo-trip-state');
+    if (raw) {
+      const parsed = JSON.parse(raw);
+      userState = {
+        done: parsed.done || {},
+        timeOverrides: parsed.timeOverrides || {},
+        durationOverrides: parsed.durationOverrides || {},
+        moves: parsed.moves || [],
+        added: parsed.added || []
+      };
+    }
+  } catch (_) {}
+}
+
+function saveUserState() {
+  try {
+    localStorage.setItem('oslo-trip-state', JSON.stringify(userState));
+  } catch (_) {}
+}
+
+function buildWorkingData() {
+  // Deep clone TRIP_DATA
+  workingData = JSON.parse(JSON.stringify(TRIP_DATA));
+
+  // Apply moves — remove from source, add to target
+  for (const move of userState.moves) {
+    let movedStop = null;
+
+    // Find and remove from source
+    for (const day of workingData.days) {
+      const idx = day.stops.findIndex(s => s.name === move.stopName);
+      if (idx !== -1) {
+        movedStop = day.stops.splice(idx, 1)[0];
+        break;
+      }
+    }
+    // Also check maybes
+    if (!movedStop) {
+      const idx = workingData.maybes.findIndex(s => s.name === move.stopName);
+      if (idx !== -1) {
+        movedStop = workingData.maybes.splice(idx, 1)[0];
+      }
+    }
+
+    if (!movedStop) continue;
+
+    // Set new time
+    movedStop.time = move.newTime;
+
+    // Add to target
+    if (move.toDay === 'maybes') {
+      workingData.maybes.push(movedStop);
+    } else {
+      const targetDay = workingData.days.find(d => d.id === move.toDay);
+      if (targetDay) {
+        targetDay.stops.push(movedStop);
+        targetDay.stops.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
+      }
+    }
+  }
+
+  // Inject user-added places
+  for (const added of userState.added) {
+    const stop = {
+      time: added.time || '12:00 PM',
+      name: added.name,
+      type: added.type || 'food',
+      notes: added.notes || '',
+      hours: '',
+      mustVisit: false,
+      rating: null,
+      lat: added.lat || 0,
+      lng: added.lng || 0,
+      mapsUrl: added.mapsUrl || '',
+      _userAdded: true
+    };
+    if (added.day === 'maybes') {
+      workingData.maybes.push(stop);
+    } else {
+      const targetDay = workingData.days.find(d => d.id === added.day);
+      if (targetDay) {
+        targetDay.stops.push(stop);
+        targetDay.stops.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
+      }
+    }
+  }
+
+  // Apply time overrides
+  for (const [name, time] of Object.entries(userState.timeOverrides)) {
+    for (const day of workingData.days) {
+      const stop = day.stops.find(s => s.name === name);
+      if (stop) {
+        stop.time = time;
+        // Re-sort this day
+        day.stops.sort((a, b) => parseTimeToMinutes(a.time) - parseTimeToMinutes(b.time));
+        break;
+      }
+    }
+  }
+}
+
+function parseTimeToMinutes(timeStr) {
+  const match = timeStr.match(/(\d+):(\d+)\s*(AM|PM)/i);
+  if (!match) return 0;
+  let h = parseInt(match[1]);
+  const m = parseInt(match[2]);
+  const ampm = match[3].toUpperCase();
+  if (ampm === 'PM' && h !== 12) h += 12;
+  if (ampm === 'AM' && h === 12) h = 0;
+  return h * 60 + m;
+}
+
+function minutesToTimeStr(mins) {
+  let h = Math.floor(mins / 60);
+  const m = mins % 60;
+  const ampm = h >= 12 ? 'PM' : 'AM';
+  if (h > 12) h -= 12;
+  if (h === 0) h = 12;
+  return `${h}:${String(m).padStart(2, '0')} ${ampm}`;
+}
+
+function time24ToDisplay(time24) {
+  // Convert "14:30" to "2:30 PM"
+  const [h, m] = time24.split(':').map(Number);
+  return minutesToTimeStr(h * 60 + m);
+}
+
+function displayToTime24(displayTime) {
+  // Convert "2:30 PM" to "14:30"
+  const mins = parseTimeToMinutes(displayTime);
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  return `${String(h).padStart(2, '0')}:${String(m).padStart(2, '0')}`;
+}
+
+function getDuration(stop) {
+  if (userState.durationOverrides[stop.name] != null) {
+    return userState.durationOverrides[stop.name];
+  }
+  return DEFAULT_DURATIONS[stop.type] || 30;
+}
+
+// ---- DONE TOGGLE ----
+
+function toggleDone(stopName, e) {
+  e.stopPropagation();
+  userState.done[stopName] = !userState.done[stopName];
+  if (!userState.done[stopName]) delete userState.done[stopName];
+  saveUserState();
+
+  // Update just the card visually
+  const card = e.target.closest('.stop-widget, .maybe-card');
+  if (card) {
+    card.classList.toggle('done', !!userState.done[stopName]);
+    const btn = card.querySelector('.done-btn');
+    if (btn) btn.classList.toggle('checked', !!userState.done[stopName]);
+  }
+}
+
+// ---- COMBINED EDIT SHEET (time + duration + move) ----
+
+function showEditSheet(stopName, dayId, e) {
+  e.stopPropagation();
+
+  const isMaybe = dayId === 'maybes';
+  let stop = null;
+
+  if (isMaybe) {
+    stop = workingData.maybes.find(s => s.name === stopName);
+  } else {
+    const day = workingData.days.find(d => d.id === dayId);
+    if (day) stop = day.stops.find(s => s.name === stopName);
+  }
+  if (!stop) return;
+
+  const currentTime24 = isMaybe ? '12:00' : displayToTime24(stop.time);
+  const currentDuration = getDuration(stop);
+  let selectedMoveDay = null;
+
+  const allDays = [
+    ...workingData.days.map(d => ({ id: d.id, label: d.label, date: d.date })),
+    { id: 'maybes', label: 'Backup Spots', date: '' }
+  ];
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-overlay';
+  overlay.innerHTML = `
+    <div class="edit-sheet">
+      <h3>${stop.name}</h3>
+      ${!isMaybe ? `
+        <label>Start Time</label>
+        <input type="time" id="edit-time" value="${currentTime24}">
+        <label>Duration (minutes)</label>
+        <input type="number" id="edit-duration" value="${currentDuration}" min="5" max="480" step="5">
+      ` : ''}
+      <div class="edit-section-label">Move to another day</div>
+      <div class="move-day-options">
+        ${allDays.map(d => `
+          <button class="move-day-btn${d.id === dayId ? ' current' : ''}" data-day="${d.id}">
+            <span class="move-day-label">${d.label}</span>
+            ${d.date ? `<span class="move-day-date">${d.date}</span>` : ''}
+          </button>
+        `).join('')}
+      </div>
+      <div class="move-time-input" id="move-time-section">
+        <label>New Start Time</label>
+        <input type="time" id="move-time" value="12:00">
+      </div>
+      <div class="edit-sheet-actions">
+        <button class="btn-cancel" id="edit-cancel">Cancel</button>
+        <button class="btn-save" id="edit-save">Save</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay) overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
+
+  // Day selection for move
+  overlay.querySelectorAll('.move-day-btn:not(.current)').forEach(btn => {
+    btn.addEventListener('click', () => {
+      // Deselect all
+      overlay.querySelectorAll('.move-day-btn').forEach(b => b.style.borderColor = 'rgba(255,255,255,0.06)');
+      // If clicking same button again, deselect
+      if (selectedMoveDay === btn.dataset.day) {
+        selectedMoveDay = null;
+        document.getElementById('move-time-section').classList.remove('visible');
+        return;
+      }
+      btn.style.borderColor = 'var(--accent)';
+      selectedMoveDay = btn.dataset.day;
+      const timeSection = document.getElementById('move-time-section');
+      if (selectedMoveDay === 'maybes') {
+        timeSection.classList.remove('visible');
+      } else {
+        timeSection.classList.add('visible');
+      }
+    });
+  });
+
+  document.getElementById('edit-cancel').addEventListener('click', () => overlay.remove());
+  document.getElementById('edit-save').addEventListener('click', () => {
+    // Save time/duration changes (for day stops only)
+    if (!isMaybe) {
+      const newTime24 = document.getElementById('edit-time').value;
+      const newDuration = parseInt(document.getElementById('edit-duration').value);
+
+      if (newTime24) {
+        const newTimeDisplay = time24ToDisplay(newTime24);
+        if (newTimeDisplay !== stop.time) {
+          userState.timeOverrides[stopName] = newTimeDisplay;
+        }
+      }
+      if (newDuration && newDuration !== DEFAULT_DURATIONS[stop.type]) {
+        userState.durationOverrides[stopName] = newDuration;
+      } else if (newDuration === DEFAULT_DURATIONS[stop.type]) {
+        delete userState.durationOverrides[stopName];
+      }
+    }
+
+    // Process move if a day was selected
+    if (selectedMoveDay) {
+      const newTime = selectedMoveDay === 'maybes'
+        ? '12:00 PM'
+        : time24ToDisplay(document.getElementById('move-time').value || '12:00');
+
+      userState.moves = userState.moves.filter(m => m.stopName !== stopName);
+      delete userState.timeOverrides[stopName];
+      userState.moves.push({ stopName, fromDay: dayId, toDay: selectedMoveDay, newTime });
+    }
+
+    saveUserState();
+    overlay.remove();
+    reRender();
+  });
+}
+
+// ---- ADD PLACE ----
+
+async function showAddSheet(dayId, e) {
+  if (e) e.stopPropagation();
+
+  const isMaybe = dayId === 'maybes';
+
+  const overlay = document.createElement('div');
+  overlay.className = 'edit-overlay';
+  overlay.innerHTML = `
+    <div class="edit-sheet">
+      <h3>Add a place</h3>
+      <label>Name</label>
+      <input type="text" id="add-name" placeholder="e.g. Tim Wendelboe">
+      <label>Type</label>
+      <select id="add-type">
+        <option value="food">Food</option>
+        <option value="coffee">Coffee</option>
+        <option value="culture">Culture</option>
+        <option value="drink">Drink</option>
+      </select>
+      ${!isMaybe ? `
+        <label>Start Time</label>
+        <input type="time" id="add-time" value="12:00">
+        <label>Duration (minutes)</label>
+        <input type="number" id="add-duration" value="45" min="5" max="480" step="5">
+      ` : ''}
+      <label>Notes (optional)</label>
+      <textarea id="add-notes" placeholder="Any notes..."></textarea>
+      <div class="edit-sheet-actions">
+        <button class="btn-cancel" id="add-cancel">Cancel</button>
+        <button class="btn-save" id="add-save">Add</button>
+      </div>
+    </div>
+  `;
+
+  overlay.addEventListener('click', (ev) => {
+    if (ev.target === overlay) overlay.remove();
+  });
+
+  document.body.appendChild(overlay);
+
+  document.getElementById('add-cancel').addEventListener('click', () => overlay.remove());
+  document.getElementById('add-save').addEventListener('click', async () => {
+    const name = document.getElementById('add-name').value.trim();
+    if (!name) return;
+
+    const type = document.getElementById('add-type').value;
+    const notes = document.getElementById('add-notes').value.trim();
+    const time = isMaybe ? '12:00 PM' : time24ToDisplay(document.getElementById('add-time').value || '12:00');
+    const duration = isMaybe ? DEFAULT_DURATIONS[type] : parseInt(document.getElementById('add-duration').value) || DEFAULT_DURATIONS[type];
+
+    // Try to get lat/lng from Google Places
+    let lat = 0, lng = 0, mapsUrl = '';
+    if (googleReady) {
+      try {
+        const { Place } = await google.maps.importLibrary('places');
+        const { places } = await Place.searchByText({
+          textQuery: name + ' Oslo',
+          fields: ['location', 'photos'],
+          maxResultCount: 1
+        });
+        if (places?.[0]) {
+          const loc = places[0].location;
+          lat = loc.lat();
+          lng = loc.lng();
+          mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+          if (places[0].photos?.length > 0) {
+            photoCache[name] = places[0].photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
+          }
+        }
+      } catch (_) {}
+    }
+
+    const newPlace = { name, type, day: dayId, time, duration, notes, lat, lng, mapsUrl };
+    userState.added.push(newPlace);
+    if (duration !== DEFAULT_DURATIONS[type]) {
+      userState.durationOverrides[name] = duration;
+    }
+
+    saveUserState();
+    overlay.remove();
+    reRender();
+  });
+}
+
+// ---- RE-RENDER ----
+
+function reRender() {
+  buildWorkingData();
+  const content = document.getElementById('content');
+  content.innerHTML = '';
+  renderDays();
+  renderMaybes();
+  switchTab(activeTab);
+}
+
 // Called by Google Maps script callback
 function onGoogleMapsReady() {
   googleReady = true;
@@ -66,6 +456,8 @@ function onGoogleMapsReady() {
 window.onGoogleMapsReady = onGoogleMapsReady;
 
 function init() {
+  loadUserState();
+  buildWorkingData();
   renderNav();
   renderDays();
   renderMaybes();
@@ -97,7 +489,6 @@ function switchTab(id) {
 // ---- WEATHER ----
 
 function fetchWeather() {
-  // Fetch detailed weather for Mar 11-13 (3 days only, drop Saturday)
   fetch('https://api.open-meteo.com/v1/forecast?latitude=59.913&longitude=10.752&daily=temperature_2m_max,temperature_2m_min,precipitation_probability_max,precipitation_sum,weathercode,windspeed_10m_max&timezone=Europe/Oslo&start_date=2026-03-11&end_date=2026-03-13')
     .then(r => r.json())
     .then(data => {
@@ -151,7 +542,6 @@ async function preloadPhotos() {
       ...TRIP_DATA.days.flatMap(d => d.stops),
       ...TRIP_DATA.maybes
     ];
-    // Fetch in small batches to avoid rate limits
     for (const stop of allStops) {
       if (photoCache[stop.name]) continue;
       try {
@@ -196,12 +586,14 @@ function updateMapForTab(id) {
 
   let stops;
   if (id === 'maybes') {
-    stops = TRIP_DATA.maybes;
+    stops = workingData.maybes;
   } else {
-    const day = TRIP_DATA.days.find(d => d.id === id);
+    const day = workingData.days.find(d => d.id === id);
     if (!day) return;
     stops = day.stops;
   }
+
+  if (stops.length === 0) return;
 
   // Fit bounds
   const bounds = new google.maps.LatLngBounds();
@@ -248,7 +640,6 @@ function updateMapForTab(id) {
       infoWindow.open(map, marker);
       activeInfoWindow = infoWindow;
       window.__activeIW = infoWindow;
-      // Center map so InfoWindow is visible (only for direct marker taps)
       if (!focusFromCard) {
         map.panTo(getOffsetCenter(marker, map.getZoom()));
       }
@@ -258,7 +649,6 @@ function updateMapForTab(id) {
         if (chr) chr.style.display = 'none';
       }, 50);
 
-      // If photo not preloaded yet, fetch on demand
       if (!photo && !photoCache.hasOwnProperty(s.name)) {
         try {
           const { Place } = await google.maps.importLibrary('places');
@@ -330,7 +720,7 @@ function buildGoogleMapsRouteUrl(stops) {
 
 function renderDays() {
   const content = document.getElementById('content');
-  TRIP_DATA.days.forEach((day, dayIdx) => {
+  workingData.days.forEach((day, dayIdx) => {
     const routeUrl = buildGoogleMapsRouteUrl(day.stops);
     const dayNum = String(dayIdx + 1).padStart(2, '0');
     const groups = groupStopsByTime(day.stops);
@@ -351,35 +741,46 @@ function renderDays() {
       ${groups.map(g => `
         <div class="time-group">
           <span class="time-label">${g.label}</span>
-          ${g.stops.map(s => renderStop(s)).join('')}
+          ${g.stops.map(s => renderStop(s, day.id)).join('')}
         </div>
       `).join('')}
+      <button class="add-place-btn" onclick="showAddSheet('${day.id}', event)">+ Add a place</button>
     `;
     content.appendChild(el);
   });
 }
 
-function renderStop(stop) {
+function renderStop(stop, dayId) {
   const num = stop._index + 1;
   const color = TYPE_COLORS[stop.type] || '#888';
+  const isDone = !!userState.done[stop.name];
+  const duration = getDuration(stop);
+
   return `
-    <div class="stop-widget ${stop.type}" data-stop-index="${stop._index}" onclick="focusStop(${stop._index})">
+    <div class="stop-widget ${stop.type}${isDone ? ' done' : ''}" data-stop-index="${stop._index}" onclick="focusStop(${stop._index})">
       <div class="stop-head">
+        <button class="done-btn${isDone ? ' checked' : ''}" onclick="toggleDone('${stop.name.replace(/'/g, "\\'")}', event)" aria-label="Mark done">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+        </button>
         <div class="stop-name-area">
           <div class="stop-name">
             <span class="stop-num" style="background:${color}">${num}</span>
-            ${stop.name}
+            <span class="stop-name-text">${stop.name}</span>
             ${stop.mustVisit ? '<span class="must-badge">MUST VISIT</span>' : ''}
+            ${stop.mapsUrl ? `<a class="stop-maps" href="${stop.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>` : ''}
           </div>
         </div>
-        <span class="stop-time-badge">${stop.time}</span>
+        <div class="stop-time-area">
+          <span class="stop-time-badge">${stop.time}</span>
+          <span class="stop-duration">~${duration} min</span>
+        </div>
       </div>
       <div class="stop-note">${stop.notes}</div>
       <div class="stop-foot">
         <span class="stop-type-label ${stop.type}">${stop.type}</span>
         <span class="stop-hours">${stop.hours}</span>
         ${stop.rating ? `<span class="stop-rating">\u2605 ${stop.rating}</span>` : ''}
-        <a class="stop-maps" href="${stop.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>
+        <button class="edit-btn" onclick="showEditSheet('${stop.name.replace(/'/g, "\\'")}', '${dayId}', event)">Edit</button>
       </div>
     </div>
   `;
@@ -395,14 +796,20 @@ function renderMaybes() {
   el.innerHTML = `
     <div class="day-num">*</div>
     <div class="day-title">Backup Spots</div>
-    <div class="day-meta">Swap in if plans change \u00B7 ${TRIP_DATA.maybes.length} options</div>
-    ${TRIP_DATA.maybes.map((m, i) => `
-      <div class="maybe-card" data-maybe-index="${i}" onclick="focusMaybe(${i})">
+    <div class="day-meta">Swap in if plans change \u00B7 ${workingData.maybes.length} options</div>
+    ${workingData.maybes.map((m, i) => {
+      const isDone = !!userState.done[m.name];
+      return `
+      <div class="maybe-card${isDone ? ' done' : ''}" data-maybe-index="${i}" onclick="focusMaybe(${i})">
         <div class="maybe-head">
+          <button class="done-btn${isDone ? ' checked' : ''}" onclick="toggleDone('${m.name.replace(/'/g, "\\'")}', event)" aria-label="Mark done">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><polyline points="20 6 9 17 4 12"></polyline></svg>
+          </button>
           <div class="stop-name-area">
             <div class="maybe-name">
               <span class="stop-type-dot" style="background:var(--${m.type})"></span>
-              ${m.name}
+              <span class="stop-name-text">${m.name}</span>
+              ${m.mapsUrl ? `<a class="stop-maps" href="${m.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>` : ''}
             </div>
           </div>
           <span class="maybe-rating">\u2605 ${m.rating}</span>
@@ -411,10 +818,11 @@ function renderMaybes() {
         <div class="stop-foot">
           <span class="stop-type-label ${m.type}">${m.type}</span>
           <span class="stop-hours">${m.hours}</span>
-          <a class="stop-maps" href="${m.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>
+          <button class="edit-btn" onclick="showEditSheet('${m.name.replace(/'/g, "\\'")}', 'maybes', event)">Edit</button>
         </div>
       </div>
-    `).join('')}
+    `}).join('')}
+    <button class="add-place-btn" onclick="showAddSheet('maybes', event)">+ Add a place</button>
   `;
   content.appendChild(el);
 }
@@ -436,7 +844,6 @@ function focusStop(index) {
   setTimeout(() => {
     const target = getOffsetCenter(markers[index], 15);
     map.moveCamera({ center: target, zoom: 15 });
-    // Small delay then panTo same spot to trigger a smooth settle
     setTimeout(() => {
       map.panTo(target);
       google.maps.event.addListenerOnce(map, 'idle', () => {
@@ -486,6 +893,8 @@ document.addEventListener('touchend', e => {
 const PRESSABLE = '.stop-widget, .maybe-card, .nav-tab, .route-btn';
 function pressStart(e) {
   const target = e.touches ? e.touches[0].target : e.target;
+  // Don't trigger press on action buttons
+  if (target.closest('.done-btn, .edit-btn, .stop-maps')) return;
   const el = target.closest(PRESSABLE);
   if (el) el.classList.add('pressed');
 }
