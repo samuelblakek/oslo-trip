@@ -15,7 +15,7 @@ let focusFromCard = false;
 let workingData = null;
 
 // User state — persisted to localStorage
-let userState = { done: {}, timeOverrides: {}, durationOverrides: {}, notesOverrides: {}, moves: [], added: [] };
+let userState = { done: {}, timeOverrides: {}, durationOverrides: {}, notesOverrides: {}, moves: [], added: [], deleted: [] };
 
 // Default durations by type (minutes)
 const DEFAULT_DURATIONS = { coffee: 30, food: 45, hotel: 15, culture: 120, drink: 30 };
@@ -77,7 +77,8 @@ function loadUserState() {
         durationOverrides: parsed.durationOverrides || {},
         notesOverrides: parsed.notesOverrides || {},
         moves: parsed.moves || [],
-        added: parsed.added || []
+        added: parsed.added || [],
+        deleted: parsed.deleted || []
       };
     }
   } catch (_) {}
@@ -92,6 +93,16 @@ function saveUserState() {
 function buildWorkingData() {
   // Deep clone TRIP_DATA
   workingData = JSON.parse(JSON.stringify(TRIP_DATA));
+
+  // Remove deleted stops
+  for (const name of userState.deleted) {
+    for (const day of workingData.days) {
+      day.stops = day.stops.filter(s => s.name !== name);
+    }
+    workingData.maybes = workingData.maybes.filter(s => s.name !== name);
+  }
+  // Also filter deleted from added
+  userState.added = userState.added.filter(a => !userState.deleted.includes(a.name));
 
   // Apply moves — remove from source, add to target
   for (const move of userState.moves) {
@@ -137,9 +148,9 @@ function buildWorkingData() {
       name: added.name,
       type: added.type || 'food',
       notes: added.notes || '',
-      hours: '',
+      hours: added.hours || '',
       mustVisit: false,
-      rating: null,
+      rating: added.rating || null,
       lat: added.lat || 0,
       lng: added.lng || 0,
       mapsUrl: added.mapsUrl || '',
@@ -294,6 +305,7 @@ function showEditSheet(stopName, dayId, e) {
         <button class="btn-cancel" id="edit-cancel">Cancel</button>
         <button class="btn-save" id="edit-save">Save</button>
       </div>
+      <button class="btn-delete" id="edit-delete">Delete this place</button>
     </div>
   `;
 
@@ -302,6 +314,29 @@ function showEditSheet(stopName, dayId, e) {
   });
 
   document.body.appendChild(overlay);
+
+  // Delete handler
+  document.getElementById('edit-delete').addEventListener('click', () => {
+    // Remove from added (user-added) or mark as deleted (original)
+    const addedIdx = userState.added.findIndex(a => a.name === stopName);
+    if (addedIdx !== -1) {
+      userState.added.splice(addedIdx, 1);
+    } else {
+      if (!userState.deleted.includes(stopName)) {
+        userState.deleted.push(stopName);
+      }
+    }
+    // Clean up related state
+    delete userState.timeOverrides[stopName];
+    delete userState.durationOverrides[stopName];
+    delete userState.notesOverrides[stopName];
+    delete userState.done[stopName];
+    userState.moves = userState.moves.filter(m => m.stopName !== stopName);
+
+    saveUserState();
+    overlay.remove();
+    reRender();
+  });
 
   // Day selection for move
   overlay.querySelectorAll('.move-day-btn:not(.current)').forEach(btn => {
@@ -566,8 +601,11 @@ async function showAddSheet(dayId, e) {
   overlay.innerHTML = `
     <div class="edit-sheet">
       <h3>Add a place</h3>
-      <label>Name</label>
-      <input type="text" id="add-name" placeholder="e.g. Tim Wendelboe">
+      <label>Search</label>
+      <div class="place-search-wrap">
+        <input type="text" id="add-name" placeholder="e.g. Tim Wendelboe" autocomplete="off">
+        <div class="place-results" id="place-results"></div>
+      </div>
       <label>Type</label>
       <select id="add-type">
         <option value="food">Food</option>
@@ -596,6 +634,55 @@ async function showAddSheet(dayId, e) {
 
   document.body.appendChild(overlay);
 
+  // Place search as-you-type
+  let selectedPlace = null;
+  let searchTimeout = null;
+  const nameInput = document.getElementById('add-name');
+  const resultsDiv = document.getElementById('place-results');
+
+  nameInput.addEventListener('input', () => {
+    clearTimeout(searchTimeout);
+    selectedPlace = null;
+    const query = nameInput.value.trim();
+    if (query.length < 2 || !googleReady) {
+      resultsDiv.innerHTML = '';
+      return;
+    }
+    searchTimeout = setTimeout(async () => {
+      try {
+        const { Place } = await google.maps.importLibrary('places');
+        const { places } = await Place.searchByText({
+          textQuery: query + ' Oslo',
+          fields: ['displayName', 'location', 'rating', 'regularOpeningHours', 'googleMapsURI', 'photos', 'formattedAddress'],
+          maxResultCount: 5
+        });
+        resultsDiv.innerHTML = (places || []).map((p, i) => {
+          const addr = p.formattedAddress || '';
+          const shortAddr = addr.split(',').slice(0, 2).join(',');
+          return `<button class="place-result" data-idx="${i}">
+            <span class="place-result-name">${p.displayName}</span>
+            <span class="place-result-addr">${shortAddr}${p.rating ? ` · ★ ${p.rating}` : ''}</span>
+          </button>`;
+        }).join('');
+        // Store places for selection
+        resultsDiv._places = places || [];
+      } catch (_) {
+        resultsDiv.innerHTML = '';
+      }
+    }, 300);
+  });
+
+  resultsDiv.addEventListener('click', (ev) => {
+    const btn = ev.target.closest('.place-result');
+    if (!btn) return;
+    const idx = parseInt(btn.dataset.idx);
+    const p = resultsDiv._places?.[idx];
+    if (!p) return;
+    selectedPlace = p;
+    nameInput.value = p.displayName;
+    resultsDiv.innerHTML = '';
+  });
+
   document.getElementById('add-cancel').addEventListener('click', () => overlay.remove());
   document.getElementById('add-save').addEventListener('click', async () => {
     const name = document.getElementById('add-name').value.trim();
@@ -606,29 +693,51 @@ async function showAddSheet(dayId, e) {
     const time = isMaybe ? '12:00 PM' : time24ToDisplay(document.getElementById('add-time').value || '12:00');
     const duration = isMaybe ? DEFAULT_DURATIONS[type] : parseInt(document.getElementById('add-duration').value) || DEFAULT_DURATIONS[type];
 
-    // Try to get lat/lng from Google Places
-    let lat = 0, lng = 0, mapsUrl = '';
-    if (googleReady) {
+    // Use selected place data or fall back to search
+    let lat = 0, lng = 0, mapsUrl = '', rating = null, hours = '';
+    if (selectedPlace) {
+      const p = selectedPlace;
+      const loc = p.location;
+      lat = loc.lat();
+      lng = loc.lng();
+      mapsUrl = p.googleMapsURI || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+      rating = p.rating || null;
+      if (p.regularOpeningHours?.weekdayDescriptions?.length) {
+        const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+        const todayLine = p.regularOpeningHours.weekdayDescriptions.find(d => d.startsWith(today));
+        hours = todayLine ? todayLine.replace(today + ': ', '') : p.regularOpeningHours.weekdayDescriptions[0];
+      }
+      if (p.photos?.length > 0) {
+        photoCache[name] = p.photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
+      }
+    } else if (googleReady) {
       try {
         const { Place } = await google.maps.importLibrary('places');
         const { places } = await Place.searchByText({
           textQuery: name + ' Oslo',
-          fields: ['location', 'photos'],
+          fields: ['location', 'photos', 'rating', 'regularOpeningHours', 'googleMapsURI'],
           maxResultCount: 1
         });
         if (places?.[0]) {
-          const loc = places[0].location;
+          const p = places[0];
+          const loc = p.location;
           lat = loc.lat();
           lng = loc.lng();
-          mapsUrl = `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
-          if (places[0].photos?.length > 0) {
-            photoCache[name] = places[0].photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
+          mapsUrl = p.googleMapsURI || `https://www.google.com/maps/search/?api=1&query=${lat},${lng}`;
+          rating = p.rating || null;
+          if (p.regularOpeningHours?.weekdayDescriptions?.length) {
+            const today = new Date().toLocaleDateString('en-US', { weekday: 'long' });
+            const todayLine = p.regularOpeningHours.weekdayDescriptions.find(d => d.startsWith(today));
+            hours = todayLine ? todayLine.replace(today + ': ', '') : p.regularOpeningHours.weekdayDescriptions[0];
+          }
+          if (p.photos?.length > 0) {
+            photoCache[name] = p.photos[0].getURI({ maxWidth: 480, maxHeight: 260 });
           }
         }
       } catch (_) {}
     }
 
-    const newPlace = { name, type, day: dayId, time, duration, notes, lat, lng, mapsUrl };
+    const newPlace = { name, type, day: dayId, time, duration, notes, lat, lng, mapsUrl, rating, hours };
     userState.added.push(newPlace);
     if (duration !== DEFAULT_DURATIONS[type]) {
       userState.durationOverrides[name] = duration;

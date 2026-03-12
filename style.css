@@ -544,6 +544,10 @@ body {
 .edit-sheet {
   width: 100%;
   max-width: 400px;
+  max-height: 85vh;
+  max-height: 85dvh;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
   background: var(--surface);
   border-radius: 20px 20px 0 0;
   padding: 20px 20px calc(20px + var(--safe-bottom));
@@ -763,6 +767,50 @@ body {
   min-height: 60px;
   resize: vertical;
 }
+
+/* Place search dropdown */
+.place-search-wrap {
+  position: relative;
+  margin-bottom: 14px;
+}
+.place-search-wrap input {
+  margin-bottom: 0 !important;
+}
+.place-results {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  background: var(--surface);
+  border-radius: 0 0 8px 8px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.4);
+}
+.place-result {
+  display: block;
+  width: 100%;
+  padding: 10px 12px;
+  border: none;
+  background: none;
+  text-align: left;
+  cursor: pointer;
+  border-top: 1px solid rgba(255,255,255,0.06);
+}
+.place-result:first-child { border-top: none; }
+.place-result:active { background: rgba(255,255,255,0.08); }
+.place-result-name {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: var(--text);
+}
+.place-result-addr {
+  display: block;
+  font-size: 0.7rem;
+  color: var(--text-dim);
+  margin-top: 2px;
+}
 .edit-sheet select {
   cursor: pointer;
 }
@@ -807,6 +855,7 @@ body {
   width: 100%;
   padding: 11px 0;
   margin-top: 6px;
+  margin-bottom: 16px;
   background: rgba(255,255,255,0.04);
   border: 1px solid rgba(255,255,255,0.08);
   border-radius: 10px;
@@ -895,6 +944,24 @@ body {
   color: #e06040;
   margin-top: 6px;
   text-align: center;
+}
+
+/* ---- DELETE BUTTON ---- */
+.btn-delete {
+  width: 100%;
+  padding: 10px 0;
+  margin-top: 12px;
+  border: 1px solid rgba(224,96,64,0.3);
+  border-radius: 10px;
+  background: rgba(224,96,64,0.08);
+  color: #e06040;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+.btn-delete:active {
+  background: rgba(224,96,64,0.2);
 }
 
 /* Google Maps overrides */
