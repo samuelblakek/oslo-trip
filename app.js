@@ -15,7 +15,7 @@ let focusFromCard = false;
 let workingData = null;
 
 // User state — persisted to localStorage
-let userState = { done: {}, timeOverrides: {}, durationOverrides: {}, moves: [], added: [] };
+let userState = { done: {}, timeOverrides: {}, durationOverrides: {}, notesOverrides: {}, moves: [], added: [] };
 
 // Default durations by type (minutes)
 const DEFAULT_DURATIONS = { coffee: 30, food: 45, hotel: 15, culture: 120, drink: 30 };
@@ -75,6 +75,7 @@ function loadUserState() {
         done: parsed.done || {},
         timeOverrides: parsed.timeOverrides || {},
         durationOverrides: parsed.durationOverrides || {},
+        notesOverrides: parsed.notesOverrides || {},
         moves: parsed.moves || [],
         added: parsed.added || []
       };
@@ -167,6 +168,16 @@ function buildWorkingData() {
       }
     }
   }
+
+  // Apply notes overrides
+  for (const [name, notes] of Object.entries(userState.notesOverrides)) {
+    for (const day of workingData.days) {
+      const stop = day.stops.find(s => s.name === name);
+      if (stop) { stop.notes = notes; break; }
+    }
+    const maybe = workingData.maybes.find(s => s.name === name);
+    if (maybe) maybe.notes = notes;
+  }
 }
 
 function parseTimeToMinutes(timeStr) {
@@ -245,6 +256,7 @@ function showEditSheet(stopName, dayId, e) {
 
   const currentTime24 = isMaybe ? '12:00' : displayToTime24(stop.time);
   const currentDuration = getDuration(stop);
+  const currentNotes = stop.notes || '';
   let selectedMoveDay = null;
 
   const allDays = [
@@ -263,6 +275,8 @@ function showEditSheet(stopName, dayId, e) {
         <label>Duration (minutes)</label>
         <input type="number" id="edit-duration" value="${currentDuration}" min="5" max="480" step="5">
       ` : ''}
+      <label>Notes</label>
+      <textarea id="edit-notes">${currentNotes}</textarea>
       <div class="edit-section-label">Move to another day</div>
       <div class="move-day-options">
         ${allDays.map(d => `
@@ -313,6 +327,12 @@ function showEditSheet(stopName, dayId, e) {
 
   document.getElementById('edit-cancel').addEventListener('click', () => overlay.remove());
   document.getElementById('edit-save').addEventListener('click', () => {
+    // Save notes changes
+    const newNotes = document.getElementById('edit-notes').value.trim();
+    if (newNotes !== (stop.notes || '')) {
+      userState.notesOverrides[stopName] = newNotes;
+    }
+
     // Save time/duration changes (for day stops only)
     if (!isMaybe) {
       const newTime24 = document.getElementById('edit-time').value;
@@ -332,20 +352,206 @@ function showEditSheet(stopName, dayId, e) {
     }
 
     // Process move if a day was selected
-    if (selectedMoveDay) {
-      const newTime = selectedMoveDay === 'maybes'
+    const movedToDay = selectedMoveDay;
+    if (movedToDay) {
+      const newTime = movedToDay === 'maybes'
         ? '12:00 PM'
         : time24ToDisplay(document.getElementById('move-time').value || '12:00');
 
       userState.moves = userState.moves.filter(m => m.stopName !== stopName);
       delete userState.timeOverrides[stopName];
-      userState.moves.push({ stopName, fromDay: dayId, toDay: selectedMoveDay, newTime });
+      userState.moves.push({ stopName, fromDay: dayId, toDay: movedToDay, newTime });
     }
 
     saveUserState();
     overlay.remove();
     reRender();
+
+    // Offer auto-plan for the target day after a move
+    if (movedToDay && movedToDay !== 'maybes') {
+      setTimeout(() => showAutoPlanToast(movedToDay), 300);
+    }
   });
+}
+
+// ---- API KEY + AUTO-PLAN ----
+
+function getApiKey() {
+  return localStorage.getItem('oslo-api-key') || '';
+}
+
+function showApiKeyPrompt() {
+  return new Promise((resolve) => {
+    const overlay = document.createElement('div');
+    overlay.className = 'edit-overlay';
+    overlay.innerHTML = `
+      <div class="edit-sheet api-key-sheet">
+        <h3>Claude API Key</h3>
+        <label>Paste your Anthropic API key</label>
+        <input type="password" id="api-key-input" value="${getApiKey()}" placeholder="sk-ant-...">
+        <div class="hint">Stored locally only. Used to auto-plan your day.</div>
+        <div class="edit-sheet-actions">
+          <button class="btn-cancel" id="apikey-cancel">Cancel</button>
+          <button class="btn-save" id="apikey-save">Save</button>
+        </div>
+      </div>
+    `;
+    overlay.addEventListener('click', (ev) => {
+      if (ev.target === overlay) { overlay.remove(); resolve(null); }
+    });
+    document.body.appendChild(overlay);
+    document.getElementById('apikey-cancel').addEventListener('click', () => { overlay.remove(); resolve(null); });
+    document.getElementById('apikey-save').addEventListener('click', () => {
+      const key = document.getElementById('api-key-input').value.trim();
+      if (key) localStorage.setItem('oslo-api-key', key);
+      overlay.remove();
+      resolve(key || null);
+    });
+  });
+}
+
+async function autoPlanDay(dayId) {
+  let apiKey = getApiKey();
+  if (!apiKey) {
+    apiKey = await showApiKeyPrompt();
+    if (!apiKey) return;
+  }
+
+  const day = workingData.days.find(d => d.id === dayId);
+  if (!day || day.stops.length < 2) return;
+
+  // Show loading state on button
+  const btn = document.querySelector(`.auto-plan-btn[data-day="${dayId}"]`);
+  if (btn) btn.classList.add('loading');
+
+  const stopsData = day.stops.map(s => ({
+    name: s.name,
+    type: s.type,
+    hours: s.hours,
+    mustVisit: s.mustVisit,
+    notes: s.notes,
+    lat: s.lat,
+    lng: s.lng,
+    duration: getDuration(s)
+  }));
+
+  const prompt = `You are a trip planner for a solo food trip in Oslo. Reshuffle this day's schedule to be optimal.
+
+Current stops for ${day.date} (${day.title}):
+${JSON.stringify(stopsData, null, 2)}
+
+Hotel location (start/end point): lat ${TRIP_DATA.hotel.lat}, lng ${TRIP_DATA.hotel.lng}
+
+Rules:
+- Respect each place's opening hours strictly — a stop must start within its open hours
+- Keep meals spaced out (at least 2 hours between food stops)
+- Coffee stops should be in morning or mid-afternoon, not late evening
+- Minimise walking backtracking — group nearby stops
+- Must-visit items cannot be removed
+- Drinks/bars should be in the evening
+- Return ONLY a JSON array of objects with "name" and "time" fields
+- Times must be in "H:MM AM/PM" format (e.g. "2:15 PM", "10:00 AM")
+- Order the array chronologically
+- Include ALL stops, don't remove any
+
+Return ONLY valid JSON, no markdown fencing, no explanation.`;
+
+  try {
+    const response = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'x-api-key': apiKey,
+        'anthropic-version': '2023-06-01',
+        'content-type': 'application/json',
+        'anthropic-dangerous-direct-browser-access': 'true'
+      },
+      body: JSON.stringify({
+        model: 'claude-sonnet-4-20250514',
+        max_tokens: 1024,
+        messages: [{ role: 'user', content: prompt }]
+      })
+    });
+
+    if (!response.ok) {
+      const errBody = await response.text();
+      if (response.status === 401) {
+        localStorage.removeItem('oslo-api-key');
+        showAutoPlanError(dayId, 'Invalid API key. Tap Auto-plan to try again.');
+      } else {
+        showAutoPlanError(dayId, `API error: ${response.status}`);
+      }
+      return;
+    }
+
+    const data = await response.json();
+    const text = data.content?.[0]?.text || '';
+
+    // Parse JSON from response (handle potential markdown fencing)
+    let parsed;
+    try {
+      const jsonStr = text.replace(/```json?\n?/g, '').replace(/```/g, '').trim();
+      parsed = JSON.parse(jsonStr);
+    } catch {
+      showAutoPlanError(dayId, 'Could not parse AI response. Try again.');
+      return;
+    }
+
+    if (!Array.isArray(parsed)) {
+      showAutoPlanError(dayId, 'Unexpected AI response format.');
+      return;
+    }
+
+    // Apply time overrides
+    for (const item of parsed) {
+      if (item.name && item.time) {
+        userState.timeOverrides[item.name] = item.time;
+      }
+    }
+
+    saveUserState();
+    reRender();
+  } catch (err) {
+    showAutoPlanError(dayId, 'Network error. Check your connection.');
+  } finally {
+    if (btn) btn.classList.remove('loading');
+  }
+}
+
+function showAutoPlanError(dayId, msg) {
+  const btn = document.querySelector(`.auto-plan-btn[data-day="${dayId}"]`);
+  if (!btn) return;
+  btn.classList.remove('loading');
+  let errEl = btn.parentElement.querySelector('.auto-plan-error');
+  if (!errEl) {
+    errEl = document.createElement('div');
+    errEl.className = 'auto-plan-error';
+    btn.insertAdjacentElement('afterend', errEl);
+  }
+  errEl.textContent = msg;
+  setTimeout(() => errEl.remove(), 5000);
+}
+
+function showAutoPlanToast(dayId) {
+  // Remove any existing toast
+  document.querySelectorAll('.auto-plan-toast').forEach(t => t.remove());
+
+  const toast = document.createElement('div');
+  toast.className = 'auto-plan-toast';
+  toast.innerHTML = `
+    <span>Day updated — Auto-plan?</span>
+    <button class="toast-btn yes">Yes</button>
+    <button class="toast-btn no">No</button>
+  `;
+  document.body.appendChild(toast);
+
+  toast.querySelector('.yes').addEventListener('click', () => {
+    toast.remove();
+    autoPlanDay(dayId);
+  });
+  toast.querySelector('.no').addEventListener('click', () => toast.remove());
+
+  // Auto-dismiss after 8 seconds
+  setTimeout(() => toast.remove(), 8000);
 }
 
 // ---- ADD PLACE ----
@@ -431,6 +637,11 @@ async function showAddSheet(dayId, e) {
     saveUserState();
     overlay.remove();
     reRender();
+
+    // Offer auto-plan for the target day after adding
+    if (!isMaybe) {
+      setTimeout(() => showAutoPlanToast(dayId), 300);
+    }
   });
 }
 
@@ -738,6 +949,11 @@ function renderDays() {
         <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor"><path d="M21.71 11.29l-9-9a1 1 0 00-1.42 0l-9 9a1 1 0 000 1.42l9 9a1 1 0 001.42 0l9-9a1 1 0 000-1.42zM14 14.5V12h-4v3H8v-4a1 1 0 011-1h5V7.5l3.5 3.5-3.5 3.5z"/></svg>
         Open walking route
       </a>` : ''}
+      <button class="auto-plan-btn" data-day="${day.id}" onclick="autoPlanDay('${day.id}')">
+        <span class="sparkle">&#10024;</span>
+        <span class="spinner"></span>
+        Auto-plan this day
+      </button>
       ${groups.map(g => `
         <div class="time-group">
           <span class="time-label">${g.label}</span>
@@ -767,7 +983,6 @@ function renderStop(stop, dayId) {
             <span class="stop-num" style="background:${color}">${num}</span>
             <span class="stop-name-text">${stop.name}</span>
             ${stop.mustVisit ? '<span class="must-badge">MUST VISIT</span>' : ''}
-            ${stop.mapsUrl ? `<a class="stop-maps" href="${stop.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>` : ''}
           </div>
         </div>
         <div class="stop-time-area">
@@ -780,6 +995,7 @@ function renderStop(stop, dayId) {
         <span class="stop-type-label ${stop.type}">${stop.type}</span>
         <span class="stop-hours">${stop.hours}</span>
         ${stop.rating ? `<span class="stop-rating">\u2605 ${stop.rating}</span>` : ''}
+        ${stop.mapsUrl ? `<a class="stop-maps" href="${stop.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>` : ''}
         <button class="edit-btn" onclick="showEditSheet('${stop.name.replace(/'/g, "\\'")}', '${dayId}', event)">Edit</button>
       </div>
     </div>
@@ -809,7 +1025,6 @@ function renderMaybes() {
             <div class="maybe-name">
               <span class="stop-type-dot" style="background:var(--${m.type})"></span>
               <span class="stop-name-text">${m.name}</span>
-              ${m.mapsUrl ? `<a class="stop-maps" href="${m.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>` : ''}
             </div>
           </div>
           <span class="maybe-rating">\u2605 ${m.rating}</span>
@@ -818,6 +1033,7 @@ function renderMaybes() {
         <div class="stop-foot">
           <span class="stop-type-label ${m.type}">${m.type}</span>
           <span class="stop-hours">${m.hours}</span>
+          ${m.mapsUrl ? `<a class="stop-maps" href="${m.mapsUrl}" target="_blank" rel="noopener" onclick="event.stopPropagation()">Maps \u2197</a>` : ''}
           <button class="edit-btn" onclick="showEditSheet('${m.name.replace(/'/g, "\\'")}', 'maybes', event)">Edit</button>
         </div>
       </div>
@@ -894,7 +1110,7 @@ const PRESSABLE = '.stop-widget, .maybe-card, .nav-tab, .route-btn';
 function pressStart(e) {
   const target = e.touches ? e.touches[0].target : e.target;
   // Don't trigger press on action buttons
-  if (target.closest('.done-btn, .edit-btn, .stop-maps')) return;
+  if (target.closest('.done-btn, .edit-btn, .stop-maps, .auto-plan-btn, .toast-btn')) return;
   const el = target.closest(PRESSABLE);
   if (el) el.classList.add('pressed');
 }
